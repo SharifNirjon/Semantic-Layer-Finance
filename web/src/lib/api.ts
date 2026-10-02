@@ -22,11 +22,19 @@ async function readError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, detail);
 }
 
-export async function login(username: string): Promise<Session> {
+/** Fired when the API rejects the session (expired, deactivated or changed access); AuthProvider signs out. */
+export const UNAUTHORIZED_EVENT = "gba:unauthorized";
+
+async function failure(res: Response): Promise<ApiError> {
+  if (res.status === 401) window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+  return readError(res);
+}
+
+export async function login(username: string, password: string): Promise<Session> {
   const res = await fetch(`${API_URL}/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password: "demo123" }), // fixed demo credentials, see README
+    body: JSON.stringify({ username, password }),
   });
   if (!res.ok) throw await readError(res);
   return res.json();
@@ -37,8 +45,8 @@ export async function api<T>(path: string, token: string, init?: RequestInit): P
     ...init,
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...init?.headers },
   });
-  if (!res.ok) throw await readError(res);
-  return res.json();
+  if (!res.ok) throw await failure(res);
+  return (res.status === 204 ? undefined : await res.json()) as T;
 }
 
 /** POST /chat and call `onEvent` for each server-sent event as it arrives. */
@@ -55,7 +63,7 @@ export async function streamChat(
     body: JSON.stringify({ question, history }),
     signal,
   });
-  if (!res.ok || !res.body) throw await readError(res);
+  if (!res.ok || !res.body) throw await failure(res);
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";

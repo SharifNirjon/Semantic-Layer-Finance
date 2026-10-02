@@ -1,7 +1,33 @@
 import { expect, test } from "@playwright/test";
-import { mockChat, switchRole, trackConsoleErrors } from "./helpers";
+import { mockChat, signIn, switchRole, trackConsoleErrors } from "./helpers";
+
+test.describe("sign-in", () => {
+  test("pages require sign-in and come back after it", async ({ page }) => {
+    await page.goto("/trust");
+    await expect(page).toHaveURL(/\/login\?next=%2Ftrust/);
+    await page.getByTestId("login-username").fill("cmo");
+    await page.getByTestId("login-password").fill("wrong-password");
+    await page.getByTestId("login-submit").click();
+    await expect(page.getByTestId("login-error")).toBeVisible();
+    await page.getByTestId("login-password").fill("demo123");
+    await page.getByTestId("login-submit").click();
+    await expect(page).toHaveURL(/\/trust$/);
+    await expect(page.getByTestId("role-banner")).toContainText("Chief Marketing Officer");
+  });
+
+  test("sign out returns to the sign-in page; non-admins have no user management", async ({ page }) => {
+    await signIn(page, "Analyst");
+    await expect(page.getByRole("link", { name: /Users/ })).toHaveCount(0);
+    await page.getByTestId("sign-out").click();
+    await expect(page).toHaveURL(/\/login/);
+  });
+});
 
 test.describe("demo script", () => {
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, "CMO");
+  });
+
   test("executive dashboard shows KPIs, trends and tables with no console errors", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/dashboard");

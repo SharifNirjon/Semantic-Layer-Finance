@@ -46,7 +46,7 @@ demo:
 	@echo "   API docs                                http://localhost:8000/docs"
 	@echo "   MCP server (streamable HTTP)            http://localhost:8765/mcp"
 	@echo "   Cube playground-less REST API           http://localhost:4000"
-	@echo " Demo logins (password demo123 for all; the UI role switcher logs in for you)"
+	@echo " Demo logins on the sign-in page (password demo123); set ADMIN_USERNAME/ADMIN_PASSWORD in .env for an admin"
 	@echo "   cmo                   Chief Marketing Officer, all data"
 	@echo "   branch_manager_dhaka  Narayanganj branch only"
 	@echo "   analyst               aggregates only, no customer-level data"

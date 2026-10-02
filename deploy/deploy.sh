@@ -51,12 +51,26 @@ if [ -z "$(get_env GEMINI_API_KEY || true)" ]; then
   set_env GEMINI_API_KEY "$key"
 fi
 
-if [ -z "$(get_env SITE_PASSWORD_HASH || true)" ]; then
-  read -rp "Site login user [demo]: " user; user="${user:-demo}"
-  read -rsp "Site login password (input hidden): " pw; echo
-  set_env SITE_USER "$user"
-  set_env SITE_PASSWORD_HASH "$(docker run --rm caddy:2.10 caddy hash-password --plaintext "$pw")"
+if [ -z "$(get_env ADMIN_USERNAME || true)" ] || [ -z "$(get_env ADMIN_PASSWORD || true)" ]; then
+  echo "Create the administrator account (signs in to the app and manages the other users)."
+  default_user="$(get_env SITE_USER || true)"; default_user="${default_user:-admin}"
+  while :; do
+    read -rp "Admin username [$default_user]: " user; user="$(printf '%s' "${user:-$default_user}" | tr '[:upper:]' '[:lower:]')"
+    printf '%s' "$user" | grep -Eq '^[a-z0-9][a-z0-9._-]{2,31}$' && break
+    echo "3-32 characters: lowercase letters, digits, dot, dash or underscore."
+  done
+  read -rp "Admin full name [Administrator]: " name; name="${name:-Administrator}"; name="${name//\'/}"
+  while :; do
+    read -rsp "Admin password (8+ characters, input hidden): " pw; echo
+    case "$pw" in *"'"*) echo "Please avoid the ' character."; continue ;; esac
+    [ "${#pw}" -ge 8 ] && break
+    echo "Too short."
+  done
+  set_env ADMIN_USERNAME "$user"
+  set_env ADMIN_DISPLAY_NAME "$name"
+  set_env ADMIN_PASSWORD "$pw"
 fi
+chmod 600 .env   # holds the admin password, API keys and secrets
 
 echo "==> Web server (ports 80/443)"
 # Another Caddy already on :80 (e.g. Hostinger's n8n template)? Then join it instead of starting our own.
@@ -97,7 +111,7 @@ docker compose up -d --build --wait
 
 if [ -n "$PROXY" ]; then
   echo "==> Adding $(get_env DOMAIN) to $PROXY_CONTAINER"
-  BACKUP="$(python3 deploy/register_site.py "$CADDYFILE" "$(get_env DOMAIN)" "$(get_env SITE_USER)" "$(get_env SITE_PASSWORD_HASH)")"
+  BACKUP="$(python3 deploy/register_site.py "$CADDYFILE" "$(get_env DOMAIN)")"
   if docker exec "$PROXY_CONTAINER" caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1; then
     docker exec "$PROXY_CONTAINER" caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile \
       || docker restart "$PROXY_CONTAINER" >/dev/null
@@ -115,4 +129,4 @@ docker run --rm --network host -e JWT_SECRET="$(get_env JWT_SECRET)" -v "$PWD/sc
   echo "Warm-up did not finish; the first queries will just be slower."
 
 echo
-echo "Live at https://$DOMAIN (user: $(get_env SITE_USER)). Logs: docker compose logs -f"
+echo "Live at https://$DOMAIN - sign in as $(get_env ADMIN_USERNAME), then add people under Users. Logs: docker compose logs -f"

@@ -46,8 +46,10 @@ No `make` (Windows)? The targets are thin wrappers; run the commands in the Make
 | <http://localhost:8765/mcp> | MCP server (streamable HTTP) |
 | <http://localhost:4000> | Cube REST API (JWT required) |
 
-Demo logins (password `demo123`; the header role switcher signs in for you): `cmo` (everything), `branch_manager_dhaka`
-(Narayanganj branch only), `analyst` (aggregates only, no customer-level dimensions).
+Sign-in: an administrator (`ADMIN_USERNAME` / `ADMIN_PASSWORD` in `.env`) creates accounts under **Users** and gives
+each a role: CMO (everything), Branch manager (one branch) or Analyst (aggregates only, no customer-level dimensions).
+Locally, demo accounts are offered on the sign-in page (password `demo123`): `cmo`, `branch_manager_dhaka` (Narayanganj),
+`analyst`. Production turns them off (`DEMO_LOGINS=false`).
 
 Other targets: `make test`, `make test-web`, `make eval PROVIDER=gemini`, `make screenshots`, `make recon-break` /
 `make recon-fix`, `make lint`. The 10-minute presentation is in [docs/DEMO.md](docs/DEMO.md).
@@ -58,7 +60,7 @@ Tested layout for one Ubuntu/Debian server with 4 GB+ RAM (e.g. a Hostinger KVM 
 
 1. Point a domain or subdomain at the server (DNS `A` record) and open ports 80 and 443.
 2. On the server: `git clone <this repo> && cd Semantic-Layer-Finance && sudo ./deploy/deploy.sh analytics.example.com`
-3. It asks for the Gemini API key and a site login, installs Docker if needed, seeds the warehouse on the first run,
+3. It asks for the Gemini API key and your admin account, installs Docker if needed, seeds the warehouse on the first run,
    and starts everything. Re-run it to deploy new commits after `git pull`.
 4. Optional, automatic deploys: every push to `main` redeploys via `.github/workflows/deploy.yml`. Once:
    `ssh-keygen -t ed25519 -f gh_deploy -N ""`, append `gh_deploy.pub` to the server's `~/.ssh/authorized_keys`, then add
@@ -66,7 +68,7 @@ Tested layout for one Ubuntu/Debian server with 4 GB+ RAM (e.g. a Hostinger KVM 
    `/root/Semantic-Layer-Finance`. Runs show under the Actions tab; "Run workflow" deploys on demand.
 
 Caddy is the only public service: it serves the UI and the API on one origin (`/api` is proxied to the API), gets the
-TLS certificate automatically, and puts a password in front of the site so strangers cannot spend the LLM quota.
+TLS certificate automatically. Access is the app's own sign-in: only accounts the admin created can use it (and the LLM).
 Postgres, Cube, the MCP server and the API bind to `127.0.0.1` only. See `deploy/`.
 
 ## Switching the LLM provider

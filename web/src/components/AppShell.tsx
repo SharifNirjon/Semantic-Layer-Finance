@@ -1,10 +1,10 @@
 "use client";
 
-import { ChevronDown, LayoutDashboard, Menu, MessageSquareText, Moon, ShieldCheck, Sun, X } from "lucide-react";
+import { LayoutDashboard, LogOut, Menu, MessageSquareText, Moon, ShieldCheck, Sun, Users, X } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState, useSyncExternalStore, type ReactNode } from "react";
-import { DEMO_ROLES, useAuth } from "@/lib/auth";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { ROLE_LABELS, useAuth } from "@/lib/auth";
 import { assistantName, useHealth } from "@/lib/health";
 
 const NAV = [
@@ -12,6 +12,7 @@ const NAV = [
   { href: "/copilot", label: "Ask", hint: "Questions in plain English", icon: MessageSquareText },
   { href: "/trust", label: "Trust center", hint: "Audit, GL, definitions", icon: ShieldCheck },
 ];
+const ADMIN_NAV = { href: "/admin", label: "Users", hint: "Accounts and access", icon: Users };
 
 const SCOPE: Record<string, string> = {
   cmo: "Bank-wide access",
@@ -78,7 +79,7 @@ function Brand() {
 
 function Sidebar({ onNavigate }: { onNavigate: () => void }) {
   const path = usePathname();
-  const { session, switchTo, error } = useAuth();
+  const { session, signOut } = useAuth();
   const { health } = useHealth();
   return (
     <div className="flex h-full flex-col gap-6 bg-gradient-to-b from-nav to-nav2 px-4 py-5 text-navink">
@@ -88,7 +89,7 @@ function Sidebar({ onNavigate }: { onNavigate: () => void }) {
 
       <nav aria-label="Primary" className="flex flex-col gap-1">
         <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-navmuted">Workspace</p>
-        {NAV.map((n) => {
+        {[...NAV, ...(session?.is_admin ? [ADMIN_NAV] : [])].map((n) => {
           const active = path.startsWith(n.href);
           const label = n.href === "/copilot" ? `Ask ${assistantName(health)}` : n.label;
           return (
@@ -129,23 +130,22 @@ function Sidebar({ onNavigate }: { onNavigate: () => void }) {
               </span>
             </div>
           )}
-          <label className="relative mt-3 block">
-            <span className="sr-only">Switch demo role</span>
-            <select
-              data-testid="role-switcher"
-              value={session?.username ?? ""}
-              onChange={(e) => void switchTo(e.target.value)}
-              className="w-full appearance-none rounded-lg border border-white/10 bg-white/5 py-2 pl-3 pr-8 text-sm text-navink outline-none transition hover:bg-white/10 [&>option]:text-black"
-            >
-              {DEMO_ROLES.map((r) => (
-                <option key={r.username} value={r.username}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 h-4 w-4 text-navmuted" aria-hidden />
-          </label>
-          {error && <p className="mt-2 text-xs text-[#ffb59c]">API unreachable</p>}
+          {session && (
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <span className="rounded-md bg-white/10 px-2 py-1 text-[11px] font-medium text-navink">
+                {ROLE_LABELS[session.role] ?? session.role}
+                {session.is_admin ? " · Admin" : ""}
+              </span>
+              <button
+                data-testid="sign-out"
+                onClick={signOut}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-navmuted transition hover:bg-white/10 hover:text-navink"
+              >
+                <LogOut className="h-3.5 w-3.5" aria-hidden />
+                Sign out
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-2 px-1">
@@ -164,6 +164,18 @@ function Sidebar({ onNavigate }: { onNavigate: () => void }) {
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const path = usePathname();
+  const router = useRouter();
+  const { session, ready, signedOutByUser } = useAuth();
+  const isLogin = path.startsWith("/login");
+
+  useEffect(() => {
+    // an expired session returns to this page after sign-in; a deliberate sign-out starts fresh
+    if (ready && !session && !isLogin) router.replace(signedOutByUser ? "/login" : `/login?next=${encodeURIComponent(path)}`);
+  }, [ready, session, isLogin, path, router, signedOutByUser]);
+
+  if (isLogin) return <>{children}</>;
+  if (!ready || !session) return <div className="min-h-screen bg-page" aria-busy="true" />;
   return (
     <div className="min-h-screen lg:pl-[272px]">
       {/* Single sidebar instance: fixed on desktop, off-canvas drawer on small screens. */}

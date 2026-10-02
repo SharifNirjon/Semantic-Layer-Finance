@@ -1,21 +1,7 @@
-# One origin for the UI and the API: the browser calls https://DOMAIN/api/..., so no CORS and the
-# password prompt covers both. The gate keeps strangers from spending the LLM quota.
+# One origin for the UI and the API: the browser calls https://DOMAIN/api/..., so there is no CORS.
+# Access control is the app's own sign-in (admin-managed accounts); every API call needs a valid token.
 {$DOMAIN} {
 	encode zstd gzip
-
-	# The app sends its own JWT as "Authorization: Bearer", which replaces the browser's Basic credentials,
-	# so API calls with a Bearer token skip the password gate (the API verifies the JWT). /api/login stays gated,
-	# so a token can only be obtained after passing the gate.
-	@gated {
-		not {
-			path /api/*
-			header Authorization "Bearer *"
-			not path /api/login
-		}
-	}
-	basic_auth @gated {
-		{$SITE_USER} {$SITE_PASSWORD_HASH}
-	}
 
 	handle_path /api/* {
 		reverse_proxy api:8000 {

@@ -1,5 +1,6 @@
 # Production override for a single VPS. Enabled by COMPOSE_FILE in .env (deploy/deploy.sh sets it).
-# Only Caddy is public (80/443, automatic HTTPS, password gate); every other service binds to 127.0.0.1.
+# Only Caddy is public (80/443, automatic HTTPS); every other service binds to 127.0.0.1. People sign in with
+# accounts an admin creates in the app (no fixed demo logins in production).
 # The bundled Caddy runs under the "own-proxy" profile. When another Caddy already owns 80/443 (e.g. Hostinger's
 # n8n template), deploy.sh adds docker-compose.shared-proxy.yml and registers this site with that Caddy instead.
 services:
@@ -16,6 +17,7 @@ services:
     restart: unless-stopped
     environment:
       CORS_ORIGINS: https://${DOMAIN:?set DOMAIN in .env}
+      DEMO_LOGINS: "false"
     ports: !override ["127.0.0.1:${API_PORT:-8000}:8000"]
   web:
     restart: unless-stopped
@@ -30,8 +32,6 @@ services:
     ports: ["80:80", "443:443", "443:443/udp"]
     environment:
       DOMAIN: ${DOMAIN:?set DOMAIN in .env}
-      SITE_USER: ${SITE_USER:-demo}
-      SITE_PASSWORD_HASH: ${SITE_PASSWORD_HASH:?run deploy/deploy.sh to set the site password}
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

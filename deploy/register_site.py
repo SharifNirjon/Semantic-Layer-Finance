@@ -1,6 +1,6 @@
 """Add (or refresh) this app's site block in another Caddy's Caddyfile, between managed markers.
 
-Usage: python3 register_site.py CADDYFILE DOMAIN USER PASSWORD_HASH
+Usage: python3 register_site.py CADDYFILE DOMAIN
 Writes in place (same inode, so a single-file bind mount in the running container sees the change)
 and keeps a timestamped backup next to it. Prints the backup path.
 """
@@ -15,20 +15,10 @@ import time
 BEGIN, END = "# >>> governed-banking (managed by deploy/deploy.sh)", "# <<< governed-banking"
 
 
-def block(domain: str, user: str, pw_hash: str) -> str:
+def block(domain: str) -> str:
     return f"""{BEGIN}
 {domain} {{
 	encode zstd gzip
-	@gated {{
-		not {{
-			path /api/*
-			header Authorization "Bearer *"
-			not path /api/login
-		}}
-	}}
-	basic_auth @gated {{
-		{user} {pw_hash}
-	}}
 	handle_path /api/* {{
 		reverse_proxy gba-api:8000 {{
 			flush_interval -1
@@ -50,13 +40,13 @@ def merge(current: str, new_block: str) -> str:
 
 
 def main() -> None:
-    path, domain, user, pw_hash = sys.argv[1:5]
+    path, domain = sys.argv[1:3]
     backup = f"{path}.bak.{time.strftime('%Y%m%d-%H%M%S')}"
     shutil.copy2(path, backup)
     with open(path, encoding="utf-8") as f:
         current = f.read()
     with open(path, "w", encoding="utf-8") as f:  # truncate + write keeps the inode
-        f.write(merge(current, block(domain, user, pw_hash)))
+        f.write(merge(current, block(domain)))
     print(backup)
 
 
