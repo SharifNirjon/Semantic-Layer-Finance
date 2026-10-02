@@ -115,9 +115,12 @@ class Engine:
         key = (caller.role, caller.branch_id, name)
         if key not in self._values:
             dim = cat.dimension(name, caller.role)
-            member = next(iter(dim.members.values()))
-            rows = await self.cube.load(caller.token, {"dimensions": [member], "limit": 500})
-            self._values[key] = sorted(str(r[member]) for r in rows if r.get(member) is not None)
+            # Ask through a metric so Cube answers from its pre-aggregation instead of scanning a fact table.
+            cube, member = next((c, m) for c, m in dim.members.items() if cat.cube_metric(c))
+            rows = await self.cube.load(caller.token, {
+                "measures": [cat.cube_metric(cube)], "dimensions": [member], "limit": 1000,
+                "timeDimensions": [{"dimension": f"{cube}.{TIME_DIM}", "dateRange": ["2000-01-01", "2100-12-31"]}]})
+            self._values[key] = sorted({str(r[member]) for r in rows if r.get(member) is not None})
         return self._values[key]
 
     async def data_range(self, caller: Caller) -> tuple[date, date] | None:

@@ -86,6 +86,10 @@ class Catalog:
     def visible_dimensions(self, role: str) -> list[Dimension]:
         return [d for d in self.dimensions.values() if not (role == "analyst" and d.customer_level)]
 
+    def cube_metric(self, cube: str) -> str | None:
+        """Any queryable metric of the cube (None for cubes without a time dimension, e.g. branches)."""
+        return next((m.member for m in self.metrics.values() if m.cube == cube and m.in_catalog), None)
+
     # -- validation ------------------------------------------------------------------------------------------
     def metric(self, name: str, role: str) -> Metric:
         m = self.metrics.get(name)

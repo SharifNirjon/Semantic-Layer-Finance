@@ -1,0 +1,288 @@
+{
+ "question": "Why did Young Professionals churn rise last quarter?",
+ "events": [
+  {
+   "type": "status",
+   "message": "Thinking"
+  },
+  {
+   "type": "tool_call",
+   "id": "call_0",
+   "name": "compare_periods",
+   "arguments": {
+    "metric": "churn_rate",
+    "period_a": {
+     "start": "2026-04-01",
+     "end": "2026-06-30"
+    },
+    "period_b": {
+     "start": "2026-07-01",
+     "end": "2026-09-30"
+    },
+    "dimensions": [
+     "segment"
+    ]
+   }
+  },
+  {
+   "type": "tool_result",
+   "id": "call_0",
+   "name": "compare_periods",
+   "ok": true,
+   "rows": 5,
+   "latency_ms": 1250,
+   "error": null
+  },
+  {
+   "type": "status",
+   "message": "Reviewing results"
+  },
+  {
+   "type": "status",
+   "message": "Writing the answer"
+  },
+  {
+   "type": "final",
+   "response": {
+    "answer_text": "For the requested period the leading result is segment is Young Professionals, period_a is 0.89%, period_b is 2.61%, change is +1.72 pp, change_pct is +193.5%. Definition: Customers churned in the period divided by the sum of monthly opening customers. For one month this equals churned divided by customers at the start of that month; for a quarter it is the average monthly churn rate. Suggested action: review the trend with the relevant owner.",
+    "tables": [
+     {
+      "call_id": "call_0",
+      "title": "churn_rate: period comparison",
+      "columns": [
+       "segment",
+       "period_a",
+       "period_b",
+       "change",
+       "change_pct"
+      ],
+      "rows": [
+       {
+        "segment": "Young Professionals",
+        "period_a": 0.008876547705753824,
+        "period_b": 0.026052955926728717,
+        "change": 0.017176408220974895,
+        "change_pct": 1.9350324912737256
+       },
+       {
+        "segment": "SME",
+        "period_a": 0.007170757301929692,
+        "period_b": 0.008122893297231586,
+        "change": 0.0009521359953018936,
+        "change_pct": 0.13278039615783235
+       },
+       {
+        "segment": "Student",
+        "period_a": 0.00938546150167384,
+        "period_b": 0.010099802784916035,
+        "change": 0.0007143412832421939,
+        "change_pct": 0.07611147124888802
+       },
+       {
+        "segment": "Premium",
+        "period_a": 0.0035266136307717543,
+        "period_b": 0.003792385484830458,
+        "change": 0.0002657718540587037,
+        "change_pct": 0.07536177247762266
+       },
+       {
+        "segment": "Retail",
+        "period_a": 0.007180283330098972,
+        "period_b": 0.007265131068140644,
+        "change": 8.484773804167279e-05,
+        "change_pct": 0.011816767408884862
+       }
+      ],
+      "display_rows": [
+       {
+        "segment": "Young Professionals",
+        "period_a": "0.89%",
+        "period_b": "2.61%",
+        "change": "+1.72 pp",
+        "change_pct": "+193.5%"
+       },
+       {
+        "segment": "SME",
+        "period_a": "0.72%",
+        "period_b": "0.81%",
+        "change": "+0.10 pp",
+        "change_pct": "+13.3%"
+       },
+       {
+        "segment": "Student",
+        "period_a": "0.94%",
+        "period_b": "1.01%",
+        "change": "+0.07 pp",
+        "change_pct": "+7.6%"
+       },
+       {
+        "segment": "Premium",
+        "period_a": "0.35%",
+        "period_b": "0.38%",
+        "change": "+0.03 pp",
+        "change_pct": "+7.5%"
+       },
+       {
+        "segment": "Retail",
+        "period_a": "0.72%",
+        "period_b": "0.73%",
+        "change": "+0.01 pp",
+        "change_pct": "+1.2%"
+       }
+      ]
+     }
+    ],
+    "chart_spec": {
+     "type": "bar",
+     "x": "segment",
+     "y": [
+      "period_a",
+      "period_b",
+      "change"
+     ],
+     "series": null,
+     "title": "churn_rate: period comparison",
+     "source_call_id": "call_0",
+     "data": [
+      {
+       "segment": "Young Professionals",
+       "period_a": 0.008876547705753824,
+       "period_b": 0.026052955926728717,
+       "change": 0.017176408220974895,
+       "change_pct": 1.9350324912737256
+      },
+      {
+       "segment": "SME",
+       "period_a": 0.007170757301929692,
+       "period_b": 0.008122893297231586,
+       "change": 0.0009521359953018936,
+       "change_pct": 0.13278039615783235
+      },
+      {
+       "segment": "Student",
+       "period_a": 0.00938546150167384,
+       "period_b": 0.010099802784916035,
+       "change": 0.0007143412832421939,
+       "change_pct": 0.07611147124888802
+      },
+      {
+       "segment": "Premium",
+       "period_a": 0.0035266136307717543,
+       "period_b": 0.003792385484830458,
+       "change": 0.0002657718540587037,
+       "change_pct": 0.07536177247762266
+      },
+      {
+       "segment": "Retail",
+       "period_a": 0.007180283330098972,
+       "period_b": 0.007265131068140644,
+       "change": 8.484773804167279e-05,
+       "change_pct": 0.011816767408884862
+      }
+     ]
+    },
+    "provenance": {
+     "metrics_used": [
+      "churn_rate"
+     ],
+     "definitions": [
+      {
+       "name": "churn_rate",
+       "title": "Churn rate (monthly)",
+       "definition": "Customers churned in the period divided by the sum of monthly opening customers. For one month this equals churned divided by customers at the start of that month; for a quarter it is the average monthly churn rate.",
+       "description": "Share of opening customers who churned. Monthly rate; for longer periods it is the average monthly rate.",
+       "owner": "Head of Retail Banking",
+       "unit": "percent",
+       "time_semantics": "flow",
+       "source_tables": [
+        "marts.fct_customer_month"
+       ],
+       "caveats": "Always a monthly-equivalent rate, so months, quarters and years are directly comparable."
+      }
+     ],
+     "cube_queries": [
+      {
+       "measures": [
+        "customers.churn_rate"
+       ],
+       "dimensions": [
+        "customers.segment"
+       ],
+       "filters": [],
+       "timeDimensions": [
+        {
+         "dimension": "customers.business_date",
+         "dateRange": [
+          "2026-04-01",
+          "2026-06-30"
+         ]
+        }
+       ],
+       "limit": 50000
+      },
+      {
+       "measures": [
+        "customers.churn_rate"
+       ],
+       "dimensions": [
+        "customers.segment"
+       ],
+       "filters": [],
+       "timeDimensions": [
+        {
+         "dimension": "customers.business_date",
+         "dateRange": [
+          "2026-07-01",
+          "2026-09-30"
+         ]
+        }
+       ],
+       "limit": 50000
+      }
+     ],
+     "tool_call_ids": [
+      "call_0"
+     ],
+     "tool_calls": [
+      {
+       "id": "call_0",
+       "tool": "compare_periods",
+       "arguments": {
+        "metric": "churn_rate",
+        "period_a": {
+         "start": "2026-04-01",
+         "end": "2026-06-30"
+        },
+        "period_b": {
+         "start": "2026-07-01",
+         "end": "2026-09-30"
+        },
+        "dimensions": [
+         "segment"
+        ]
+       },
+       "error": null,
+       "latency_ms": 1250
+      }
+     ],
+     "executed_as": {
+      "user": "eval-cmo",
+      "role": "cmo",
+      "branch_id": null
+     }
+    },
+    "follow_up_suggestions": [
+     "What changed versus last quarter?"
+    ],
+    "guardrail": {
+     "passed": true,
+     "retried": false,
+     "unsupported_numbers": [],
+     "cached": false
+    },
+    "provider": "oracle",
+    "model": "scripted-oracle"
+   }
+  }
+ ]
+}
