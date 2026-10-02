@@ -52,6 +52,19 @@ Demo logins (password `demo123`; the header role switcher signs in for you): `cm
 Other targets: `make test`, `make test-web`, `make eval PROVIDER=gemini`, `make screenshots`, `make recon-break` /
 `make recon-fix`, `make lint`. The 10-minute presentation is in [docs/DEMO.md](docs/DEMO.md).
 
+## Deploy to a VPS (live URL with HTTPS)
+
+Tested layout for one Ubuntu/Debian server with 4 GB+ RAM (e.g. a Hostinger KVM VPS):
+
+1. Point a domain or subdomain at the server (DNS `A` record) and open ports 80 and 443.
+2. On the server: `git clone <this repo> && cd Semantic-Layer-Finance && sudo ./deploy/deploy.sh analytics.example.com`
+3. It asks for the Gemini API key and a site login, installs Docker if needed, seeds the warehouse on the first run,
+   and starts everything. Re-run it to deploy new commits after `git pull`.
+
+Caddy is the only public service: it serves the UI and the API on one origin (`/api` is proxied to the API), gets the
+TLS certificate automatically, and puts a password in front of the site so strangers cannot spend the LLM quota.
+Postgres, Cube, the MCP server and the API bind to `127.0.0.1` only. See `deploy/`.
+
 ## Switching the LLM provider
 
 Set `LLM_PROVIDER=gemini|anthropic` plus the matching `*_API_KEY` / `*_MODEL` in `.env` and restart the `api` service.

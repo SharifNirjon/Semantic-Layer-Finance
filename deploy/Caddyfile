@@ -1,0 +1,19 @@
+# One origin for the UI and the API: the browser calls https://DOMAIN/api/..., so no CORS and the
+# password prompt covers both. The gate keeps strangers from spending the LLM quota.
+{$DOMAIN} {
+	encode zstd gzip
+
+	basic_auth {
+		{$SITE_USER} {$SITE_PASSWORD_HASH}
+	}
+
+	handle_path /api/* {
+		reverse_proxy api:8000 {
+			flush_interval -1 # stream chat (SSE) without buffering
+		}
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}
