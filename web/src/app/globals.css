@@ -1,21 +1,34 @@
 @import "tailwindcss";
 
-/* Palette: validated categorical ramp (blue, orange, aqua, yellow, magenta, green, violet, red) with light/dark steps. */
+/* Design tokens. Categorical ramp (c1-c8) validated for CVD separation on both surfaces. */
 :root {
-  --page: #f9f9f7;
-  --surface: #fcfcfb;
-  --raised: #ffffff;
-  --ink: #0b0b0b;
-  --ink-2: #52514e;
-  --muted: #898781;
-  --line: #e1e0d9;
-  --axis: #c3c2b7;
-  --brand: #184f95;
+  --page: #f3f5f9;
+  --surface: #ffffff;
+  --raised: #f7f9fc;
+  --sunken: #eef1f6;
+  --ink: #0b1220;
+  --ink-2: #475467;
+  --muted: #7c879b;
+  --line: #e3e8f0;
+  --axis: #c9d1dd;
+  --brand: #1d4ed8;
+  --brand-2: #4f46e5;
   --brand-ink: #ffffff;
-  --brand-soft: #e8f0fb;
-  --good: #006300;
-  --bad: #d03b3b;
+  --brand-soft: #eaf0ff;
+  --gold: #a87b12;
+  --gold-soft: #fbf3df;
+  --nav: #0a1630;
+  --nav-2: #10204a;
+  --nav-ink: #e8eefc;
+  --nav-muted: #8fa0c4;
+  --good: #067647;
+  --good-soft: #e7f6ee;
+  --bad: #c4320a;
+  --bad-soft: #fdeee8;
   --warn: #8a5a00;
+  --warn-soft: #fdf3dc;
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+  --shadow-lg: 0 12px 32px -12px rgb(16 24 40 / 0.18), 0 4px 8px -4px rgb(16 24 40 / 0.06);
   --c1: #2a78d6;
   --c2: #eb6834;
   --c3: #1baf7a;
@@ -28,20 +41,33 @@
 }
 
 :root[data-theme="dark"] {
-  --page: #0d0d0d;
-  --surface: #1a1a19;
-  --raised: #222221;
-  --ink: #ffffff;
-  --ink-2: #c3c2b7;
-  --muted: #898781;
-  --line: #2c2c2a;
-  --axis: #383835;
-  --brand: #3987e5;
-  --brand-ink: #0b0b0b;
-  --brand-soft: #14233a;
-  --good: #0ca30c;
-  --bad: #ec835a;
+  --page: #070b14;
+  --surface: #0f1626;
+  --raised: #141d31;
+  --sunken: #0b111e;
+  --ink: #f1f5fb;
+  --ink-2: #aab5c9;
+  --muted: #7a869c;
+  --line: #1f2a40;
+  --axis: #2c3954;
+  --brand: #6b9bff;
+  --brand-2: #8b85ff;
+  --brand-ink: #050a16;
+  --brand-soft: #14244a;
+  --gold: #e3b54a;
+  --gold-soft: #2a2312;
+  --nav: #050912;
+  --nav-2: #0d1730;
+  --nav-ink: #e8eefc;
+  --nav-muted: #7d8db0;
+  --good: #3ccb7f;
+  --good-soft: #0f2a1d;
+  --bad: #f38d6b;
+  --bad-soft: #33170f;
   --warn: #fab219;
+  --warn-soft: #2e2309;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 16px 40px -12px rgb(0 0 0 / 0.6);
   --c1: #3987e5;
   --c2: #d95926;
   --c3: #199e70;
@@ -57,17 +83,31 @@
   --color-page: var(--page);
   --color-surface: var(--surface);
   --color-raised: var(--raised);
+  --color-sunken: var(--sunken);
   --color-ink: var(--ink);
   --color-ink2: var(--ink-2);
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-brand: var(--brand);
+  --color-brand2: var(--brand-2);
   --color-brandink: var(--brand-ink);
   --color-brandsoft: var(--brand-soft);
+  --color-gold: var(--gold);
+  --color-goldsoft: var(--gold-soft);
+  --color-nav: var(--nav);
+  --color-nav2: var(--nav-2);
+  --color-navink: var(--nav-ink);
+  --color-navmuted: var(--nav-muted);
   --color-good: var(--good);
+  --color-goodsoft: var(--good-soft);
   --color-bad: var(--bad);
+  --color-badsoft: var(--bad-soft);
   --color-warn: var(--warn);
-  --font-sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --color-warnsoft: var(--warn-soft);
+  --shadow-card: var(--shadow);
+  --shadow-float: var(--shadow-lg);
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 html {
@@ -78,20 +118,37 @@ html {
 body {
   background: var(--page);
   font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
   -webkit-font-smoothing: antialiased;
 }
 
 :focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 6px;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Hero band behind page titles. */
+.hero {
+  background:
+    radial-gradient(1200px 300px at 0% 0%, color-mix(in srgb, var(--brand) 14%, transparent), transparent 60%),
+    radial-gradient(800px 260px at 100% 0%, color-mix(in srgb, var(--brand-2) 12%, transparent), transparent 60%);
+}
+
+.orb {
+  background: conic-gradient(from 210deg, var(--brand), var(--brand-2), #22c3ee, var(--brand));
 }
 
 .skeleton {
-  background: linear-gradient(90deg, var(--line) 25%, color-mix(in srgb, var(--line) 50%, transparent) 50%, var(--line) 75%);
+  background: linear-gradient(90deg, var(--sunken) 25%, color-mix(in srgb, var(--line) 60%, transparent) 50%, var(--sunken) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite linear;
-  border-radius: 6px;
+  border-radius: 12px;
 }
 
 @keyframes shimmer {
@@ -117,13 +174,36 @@ body {
   }
 }
 
+.fade-in {
+  animation: fade-in 0.35s ease-out both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .skeleton,
-  .caret::after {
+  .caret::after,
+  .fade-in {
     animation: none;
   }
 }
 
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
 .recharts-text {
   fill: var(--muted);
+}
+.recharts-legend-item-text {
+  color: var(--ink-2) !important;
+  font-size: 12px;
 }
