@@ -6,7 +6,7 @@ import ResponseCard, { VerifiedBadge } from "@/components/ResponseCard";
 import { ErrorState } from "@/components/ui";
 import { api, streamChat } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { useHealth } from "@/lib/health";
+import { assistantName, useHealth } from "@/lib/health";
 import type { ChatEvent, ChatResponse } from "@/lib/types";
 
 interface Step {
@@ -122,7 +122,7 @@ export default function CopilotPage() {
           <span className="orb flex h-14 w-14 items-center justify-center rounded-2xl shadow-float">
             <Sparkles className="h-7 w-7 text-white" aria-hidden />
           </span>
-          <h1 className="mt-5 text-3xl font-semibold tracking-tight text-ink">What would you like to know?</h1>
+          <h1 className="mt-5 text-3xl font-semibold tracking-tight text-ink">Ask {assistantName(health)} about the bank</h1>
           <p className="mx-auto mt-2 max-w-xl text-[15px] text-ink2">
             Ask about deposits, churn, risk or campaigns. Every answer shows its chart, table, certified definition and the exact query that produced it.
           </p>
@@ -170,7 +170,7 @@ export default function CopilotPage() {
               </span>
               <div className="min-w-0 flex-1 rounded-2xl rounded-tl-md border border-line bg-surface p-5 shadow-card" data-testid="assistant-message">
                 <div className="mb-3 flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold text-ink">Copilot</span>
+                  <span className="text-sm font-semibold text-ink">{assistantName(health)}</span>
                   {t.response && <VerifiedBadge response={t.response} />}
                 </div>
                 {t.steps.length > 0 && (

@@ -44,6 +44,8 @@ fi
 [ -z "$DOMAIN" ] && read -rp "Domain (DNS A record must point to this server): " DOMAIN
 set_env DOMAIN "$DOMAIN"
 
+# gemini-3.5-flash was the old default and is chronically overloaded; move installs that still pin it
+[ "$(get_env GEMINI_MODEL || true)" = "gemini-3.5-flash" ] && set_env GEMINI_MODEL "gemini-3.6-flash"
 if [ -z "$(get_env GEMINI_API_KEY || true)" ]; then
   read -rsp "Gemini API key (input hidden): " key; echo
   set_env GEMINI_API_KEY "$key"

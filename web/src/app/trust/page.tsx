@@ -86,7 +86,7 @@ function AuditLog() {
       {!data && !error && <Skeleton className="h-64" />}
       {data &&
         (data.entries.length === 0 ? (
-          <EmptyState title="No audit entries yet" hint="Ask the copilot a question or open the dashboard, then refresh." />
+          <EmptyState title="No audit entries yet" hint="Ask a question or open the dashboard, then refresh." />
         ) : (
           <div className="max-h-[36rem] overflow-auto rounded-xl border border-line">
             <table className="w-full min-w-max text-left text-[13px]">

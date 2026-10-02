@@ -25,3 +25,11 @@ export function useHealth() {
   }, []);
   return { health, down };
 }
+
+const NAMES: Record<string, string> = { gemini: "Gemini", anthropic: "Claude" };
+
+/** Display name of the configured model provider, e.g. "Gemini". */
+export function assistantName(health: Health | null): string {
+  const provider = health?.llm?.provider ?? "";
+  return NAMES[provider] ?? (provider ? provider[0].toUpperCase() + provider.slice(1) : "AI");
+}

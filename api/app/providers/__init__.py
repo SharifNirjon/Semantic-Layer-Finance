@@ -13,7 +13,9 @@ def create_provider(name: str | None = None) -> LLMProvider:
     if name == "gemini":
         from .gemini import GeminiProvider
 
-        return GeminiProvider(os.getenv("GEMINI_API_KEY", ""), os.getenv("GEMINI_MODEL", "gemini-3.5-flash"))
+        return GeminiProvider(os.getenv("GEMINI_API_KEY", ""), os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
+                              fallback_model=os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.1-flash-lite"),
+                              timeout_s=float(os.getenv("LLM_TIMEOUT_S", "45")))
     if name == "anthropic":
         from .anthropic_provider import AnthropicProvider
 

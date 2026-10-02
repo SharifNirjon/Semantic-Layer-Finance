@@ -6,6 +6,7 @@ import json
 import re
 from typing import Any
 
+import httpx
 from google import genai
 from google.genai import errors, types
 
@@ -15,7 +16,7 @@ from .common import inline_schema, with_backoff
 
 def _retry_hint(exc: Exception) -> float | None:
     """Seconds to wait for rate limits / server errors; None for errors that retrying cannot fix."""
-    if isinstance(exc, errors.ServerError):
+    if isinstance(exc, (errors.ServerError, httpx.TimeoutException)):  # 503 "high demand" or a hung call
         return 0.0
     if isinstance(exc, errors.ClientError) and exc.code == 429:
         match = re.search(r"retry in ([\d.]+)s", str(exc)) or re.search(r"'retryDelay': '([\d.]+)s'", str(exc))
@@ -26,11 +27,14 @@ def _retry_hint(exc: Exception) -> float | None:
 class GeminiProvider:
     name = "gemini"
 
-    def __init__(self, api_key: str, model: str, client: genai.Client | None = None) -> None:
+    def __init__(self, api_key: str, model: str, client: genai.Client | None = None, fallback_model: str | None = None,
+                 timeout_s: float = 45.0) -> None:
         if not api_key and client is None:
             raise ProviderError("GEMINI_API_KEY is not set")
         self.model = model
-        self._client = client or genai.Client(api_key=api_key)
+        self.fallback_model = fallback_model if fallback_model and fallback_model != model else None
+        timeout_ms = int(max(timeout_s, 10.0) * 1000)  # the API rejects deadlines under 10 s
+        self._client = client or genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=timeout_ms))
 
     # -- translation ---------------------------------------------------------------------------------------------
     @staticmethod
@@ -89,6 +93,13 @@ class GeminiProvider:
         return response.text or ""
 
     async def _call(self, contents: list[types.Content], config: types.GenerateContentConfig):
-        return await with_backoff(
-            lambda: self._client.aio.models.generate_content(model=self.model, contents=contents, config=config),
-            _retry_hint)
+        attempts = 0
+
+        def attempt():
+            # retries alternate main and fallback model: Gemini models get overloaded (503) independently
+            nonlocal attempts
+            model = self.fallback_model if self.fallback_model and attempts % 2 else self.model
+            attempts += 1
+            return self._client.aio.models.generate_content(model=model, contents=contents, config=config)
+
+        return await with_backoff(attempt, _retry_hint)

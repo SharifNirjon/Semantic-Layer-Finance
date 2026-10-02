@@ -5,11 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { DEMO_ROLES, useAuth } from "@/lib/auth";
-import { useHealth } from "@/lib/health";
+import { assistantName, useHealth } from "@/lib/health";
 
 const NAV = [
   { href: "/dashboard", label: "Executive dashboard", hint: "KPIs, trends, network", icon: LayoutDashboard },
-  { href: "/copilot", label: "Analytics copilot", hint: "Ask in plain English", icon: MessageSquareText },
+  { href: "/copilot", label: "Ask", hint: "Questions in plain English", icon: MessageSquareText },
   { href: "/trust", label: "Trust center", hint: "Audit, GL, definitions", icon: ShieldCheck },
 ];
 
@@ -90,6 +90,7 @@ function Sidebar({ onNavigate }: { onNavigate: () => void }) {
         <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-navmuted">Workspace</p>
         {NAV.map((n) => {
           const active = path.startsWith(n.href);
+          const label = n.href === "/copilot" ? `Ask ${assistantName(health)}` : n.label;
           return (
             <Link
               key={n.href}
@@ -106,7 +107,7 @@ function Sidebar({ onNavigate }: { onNavigate: () => void }) {
                 <n.icon className="h-4 w-4" aria-hidden />
               </span>
               <span className="leading-tight">
-                <span className="block text-sm font-medium">{n.label}</span>
+                <span className="block text-sm font-medium">{label}</span>
                 <span className="block text-[11px] text-navmuted">{n.hint}</span>
               </span>
             </Link>

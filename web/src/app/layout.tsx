@@ -9,7 +9,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Governed Banking Analytics",
-  description: "One governed definition for every number: copilot, dashboard and audit trail.",
+  description: "One governed definition for every number: AI assistant, dashboard and audit trail.",
 };
 
 // Sets the theme before first paint so there is no light/dark flash.

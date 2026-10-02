@@ -73,7 +73,7 @@ Postgres, Cube, the MCP server and the API bind to `127.0.0.1` only. See `deploy
 
 Set `LLM_PROVIDER=gemini|anthropic` plus the matching `*_API_KEY` / `*_MODEL` in `.env` and restart the `api` service.
 Nothing else changes: all provider-specific code lives in `api/app/providers/`; the MCP server, Cube model and UI are
-provider-neutral. Model names are not hard-coded in logic (defaults: `gemini-3.5-flash`, `claude-opus-5-5`).
+provider-neutral. Model names are not hard-coded in logic (defaults: `gemini-3.6-flash` with `gemini-3.1-flash-lite` as overload fallback, `claude-opus-5-5`).
 
 ## Connect an external MCP client
 
