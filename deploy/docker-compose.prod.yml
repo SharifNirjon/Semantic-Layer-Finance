@@ -1,5 +1,7 @@
 # Production override for a single VPS. Enabled by COMPOSE_FILE in .env (deploy/deploy.sh sets it).
 # Only Caddy is public (80/443, automatic HTTPS, password gate); every other service binds to 127.0.0.1.
+# The bundled Caddy runs under the "own-proxy" profile. When another Caddy already owns 80/443 (e.g. Hostinger's
+# n8n template), deploy.sh adds docker-compose.shared-proxy.yml and registers this site with that Caddy instead.
 services:
   postgres:
     restart: unless-stopped
@@ -23,6 +25,7 @@ services:
     ports: !override ["127.0.0.1:${WEB_PORT:-3000}:3000"]
   caddy:
     image: caddy:2.10
+    profiles: [own-proxy]
     restart: unless-stopped
     ports: ["80:80", "443:443", "443:443/udp"]
     environment:
