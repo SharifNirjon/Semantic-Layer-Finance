@@ -58,7 +58,9 @@ services:
       CUBEJS_DB_PASS: ${POSTGRES_PASSWORD:-bank_demo_pw}
       CUBEJS_API_SECRET: ${JWT_SECRET}
       CUBEJS_DEV_MODE: "false"
+      CUBEJS_CACHE_AND_QUEUE_DRIVER: memory
       CUBEJS_SCHEDULED_REFRESH_DEFAULT: "true"
+      CUBEJS_REFRESH_WORKER: "true"
       CUBEJS_LOG_LEVEL: warn
     ports: ["${CUBE_PORT:-4000}:4000"]
     volumes:

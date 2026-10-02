@@ -195,5 +195,6 @@ cubes:
         dimensions: [branch_id, branch, region, segment, acquisition_channel]
         time_dimension: business_date
         granularity: month
+        external: false
         refresh_key:
           every: 10 minute

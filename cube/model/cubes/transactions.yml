@@ -126,6 +126,7 @@ cubes:
         dimensions: [branch_id, branch, region, segment, channel, direction, product]
         time_dimension: business_date
         granularity: month
+        external: false
         refresh_key:
           every: 10 minute
 
@@ -134,5 +135,6 @@ cubes:
         dimensions: [region, segment, channel, direction]
         time_dimension: business_date
         granularity: day
+        external: false
         refresh_key:
           every: 10 minute
