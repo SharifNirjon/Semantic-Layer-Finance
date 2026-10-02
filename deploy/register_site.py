@@ -19,7 +19,14 @@ def block(domain: str, user: str, pw_hash: str) -> str:
     return f"""{BEGIN}
 {domain} {{
 	encode zstd gzip
-	basic_auth {{
+	@gated {{
+		not {{
+			path /api/*
+			header Authorization "Bearer *"
+			not path /api/login
+		}}
+	}}
+	basic_auth @gated {{
 		{user} {pw_hash}
 	}}
 	handle_path /api/* {{

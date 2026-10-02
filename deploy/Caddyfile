@@ -3,7 +3,17 @@
 {$DOMAIN} {
 	encode zstd gzip
 
-	basic_auth {
+	# The app sends its own JWT as "Authorization: Bearer", which replaces the browser's Basic credentials,
+	# so API calls with a Bearer token skip the password gate (the API verifies the JWT). /api/login stays gated,
+	# so a token can only be obtained after passing the gate.
+	@gated {
+		not {
+			path /api/*
+			header Authorization "Bearer *"
+			not path /api/login
+		}
+	}
+	basic_auth @gated {
 		{$SITE_USER} {$SITE_PASSWORD_HASH}
 	}
 
