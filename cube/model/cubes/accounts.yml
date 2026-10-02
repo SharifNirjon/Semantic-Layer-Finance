@@ -4,6 +4,7 @@ cubes:
     description: Account master. Business date is the account open date.
     sql_table: marts.dim_account
     data_source: default
+    meta: {grain: day}
 
     joins:
       - name: branches

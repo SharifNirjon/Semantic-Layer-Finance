@@ -6,6 +6,7 @@ cubes:
       Bank-wide, so it is not available to the branch manager role.
     sql: SELECT gl_date, gl_code, balance FROM marts.fct_gl_daily WHERE is_month_end
     data_source: default
+    meta: {grain: month}
 
     dimensions:
       - name: gl_key

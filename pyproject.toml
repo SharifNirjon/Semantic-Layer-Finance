@@ -17,7 +17,7 @@ exclude = ['^web/', '^.venv/', '^dbt/']
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-pythonpath = ["scripts", "mcp-server", "api", "."]
+pythonpath = ["scripts", "api"]
 markers = [
   "integration: needs the docker compose stack (postgres, cube) to be up",
   "llm: needs an LLM provider API key",

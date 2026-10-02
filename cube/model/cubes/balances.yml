@@ -6,6 +6,7 @@ cubes:
       month end (SCD Type 2). Business date is the month end.
     sql_table: marts.fct_account_snapshot
     data_source: default
+    meta: {grain: month}
 
     joins:
       - name: branches
@@ -185,4 +186,5 @@ cubes:
         granularity: month
         external: false
         refresh_key:
-          every: 10 minute
+          every: 5 minute
+          sql: SELECT count(*), sum(closing_balance) FROM marts.fct_account_snapshot

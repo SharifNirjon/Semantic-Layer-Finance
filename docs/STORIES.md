@@ -10,12 +10,12 @@ Figures are exact for the committed seed and reference date; the Cube golden tes
 * Monthly YP churn, last six months: {'2026-04': 0.0079, '2026-05': 0.0097, '2026-06': 0.009, '2026-07': 0.02, '2026-08': 0.0264, '2026-09': 0.0316}
 
 ## b) RMG supply-chain NPL rises in Narayanganj and Gazipur
-* NPL ratio of the RMG / Garments SME loans in the two branches: **1.9%** -> **16.0%**
+* NPL ratio of the RMG / Garments SME loans in the two branches: **2.5%** -> **16.4%**
 * Rest of the loan book: 2.4% -> 1.8%
 
 ## c) CASA ratio declines as fixed deposits grow
-* CASA ratio: **59.3%** -> **48.7%**
-* Fixed-deposit balance growth over the window: **163%**
+* CASA ratio: **60.0%** -> **49.0%**
+* Fixed-deposit balance growth over the window: **167%**
 
 ## d) Campaign effectiveness
 * Best cost per acquired customer: **Student Referral Rewards** (BDT 2,055)
@@ -37,5 +37,5 @@ Figures are exact for the committed seed and reference date; the Cube golden tes
 | Retail Reactivation      |  800000 |       8000 |         497 |          63 | 6.2%            | 12.7%             | 12698 |
 
 ## e) Mobile overtakes ATM
-* Monthly transactions, first month: mobile 15,409 vs ATM 24,618; last month: mobile 43,367 vs ATM 20,001
+* Monthly transactions, first month: mobile 15,564 vs ATM 24,494; last month: mobile 43,170 vs ATM 19,988
 * First month where mobile > ATM: **July 2025**

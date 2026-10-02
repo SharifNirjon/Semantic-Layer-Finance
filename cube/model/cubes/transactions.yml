@@ -6,6 +6,7 @@ cubes:
       but never used for metrics). Segment and branch are as of the posting date (SCD Type 2).
     sql_table: marts.fct_transactions
     data_source: default
+    meta: {grain: day}
 
     joins:
       - name: branches
@@ -128,7 +129,8 @@ cubes:
         granularity: month
         external: false
         refresh_key:
-          every: 10 minute
+          every: 5 minute
+          sql: SELECT count(*), sum(amount) FROM marts.fct_transactions
 
       - name: daily
         measures: [txn_count, txn_value, digital_txn_count, digital_share]
@@ -137,4 +139,5 @@ cubes:
         granularity: day
         external: false
         refresh_key:
-          every: 10 minute
+          every: 5 minute
+          sql: SELECT count(*), sum(amount) FROM marts.fct_transactions

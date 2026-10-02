@@ -39,7 +39,7 @@ CHANNELS = ["ATM", "mobile", "card", "branch", "internet"]
 BRANCHES = [
     ("Motijheel", "Dhaka", 9, 6), ("Gulshan", "Dhaka", 8, 5), ("Dhanmondi", "Dhaka", 8, 4),
     ("Uttara", "Dhaka", 6, 3), ("Mirpur", "Dhaka", 6, 3), ("Banani", "Dhaka", 5, 3),
-    ("Narayanganj", "Dhaka", 4, 14), ("Gazipur", "Dhaka", 4, 14),
+    ("Narayanganj", "Dhaka", 4, 30), ("Gazipur", "Dhaka", 4, 30),
     ("Agrabad", "Chattogram", 8, 7), ("Chawkbazar", "Chattogram", 5, 4), ("Khulshi", "Chattogram", 4, 2),
     ("Cox's Bazar", "Chattogram", 3, 2), ("Feni", "Chattogram", 2, 2),
     ("Zindabazar", "Sylhet", 5, 3), ("Ambarkhana", "Sylhet", 3, 2), ("Moulvibazar", "Sylhet", 2, 1),
@@ -404,7 +404,7 @@ def gen_loans(rng: np.random.Generator, cal: Calendar, acc: pd.DataFrame, cust: 
     sector = np.select([code == "PL", code == "HL", code == "CC"], ["Consumer", "Housing", "Consumer Cards"], "")
     sme = code == "SME"
     s_draw = rng.choice(SME_SECTORS, n, p=SME_SECTOR_P)
-    s_draw = np.where(stress_branch & (rng.random(n) < 0.6), "RMG / Garments", s_draw)
+    s_draw = np.where(stress_branch & (rng.random(n) < 0.85), "RMG / Garments", s_draw)
     sector = np.where(sme, s_draw, sector)
     stressed = stress_branch & (sector == "RMG / Garments")
 
@@ -429,7 +429,7 @@ def gen_loans(rng: np.random.Generator, cal: Calendar, acc: pd.DataFrame, cust: 
     for t in range(t0, t_end + 1):
         existing = alive & (open_mi < t)
         h = slip.copy()
-        ramp = np.clip(0.006 * (t - (hist_mi0 + STRESS_START_MONTH) + 1), 0, 0.07)
+        ramp = np.clip(0.007 * (t - (hist_mi0 + STRESS_START_MONTH) + 1), 0, 0.09)
         h = np.where(stressed & (t >= hist_mi0 + STRESS_START_MONTH), h + ramp, h)
         cure = np.where(dpd < 60, 0.45, np.where(dpd < 120, 0.15, 0.04))
         cure = np.where(stressed & (t >= hist_mi0 + STRESS_START_MONTH), cure * 0.4, cure)

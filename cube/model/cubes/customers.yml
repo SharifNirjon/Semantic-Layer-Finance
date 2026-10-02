@@ -6,6 +6,7 @@ cubes:
       Business date is the month end.
     sql_table: marts.fct_customer_month
     data_source: default
+    meta: {grain: month}
 
     joins:
       - name: branches
@@ -197,4 +198,5 @@ cubes:
         granularity: month
         external: false
         refresh_key:
-          every: 10 minute
+          every: 5 minute
+          sql: SELECT count(*), sum(active_customers + churned_customers + products_held) FROM marts.fct_customer_month

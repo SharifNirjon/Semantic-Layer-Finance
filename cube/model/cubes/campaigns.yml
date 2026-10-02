@@ -6,6 +6,7 @@ cubes:
       Cost is allocated evenly across targeted customers, so it sums to the campaign cost under any slice.
     sql_table: marts.fct_campaign_response
     data_source: default
+    meta: {grain: month}
 
     joins:
       - name: branches
@@ -167,4 +168,5 @@ cubes:
         granularity: month
         external: false
         refresh_key:
-          every: 10 minute
+          every: 5 minute
+          sql: SELECT count(*), sum(allocated_cost + converted) FROM marts.fct_campaign_response

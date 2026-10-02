@@ -4,6 +4,7 @@ cubes:
     description: Branch master data. Used for joins and for listing branches; business date is not applicable.
     sql_table: marts.dim_branch
     data_source: default
+    meta: {grain: none}
 
     dimensions:
       - name: branch_id
