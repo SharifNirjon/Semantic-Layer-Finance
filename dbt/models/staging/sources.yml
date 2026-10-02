@@ -15,5 +15,7 @@ sources:
       - name: campaigns
       - name: campaign_responses
       - name: gl_daily_balances
+  - name: audit
+    schema: audit
+    tables:
       - name: gl_adjustments
-        schema: audit

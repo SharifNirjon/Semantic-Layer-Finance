@@ -8,5 +8,5 @@ select
     g.gl_date = (date_trunc('month', g.gl_date) + interval '1 month - 1 day')::date as is_month_end
 from {{ ref('stg_gl_daily') }} g
 cross join latest
-left join {{ source('raw', 'gl_adjustments') }} a
+left join {{ source('audit', 'gl_adjustments') }} a
   on a.gl_code = g.gl_code and date_trunc('month', g.gl_date) = latest.m
