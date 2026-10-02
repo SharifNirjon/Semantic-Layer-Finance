@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Check, Loader2, Lock } from "lucide-react";
+import { ArrowRight, Check, Eye, EyeOff, Loader2, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { API_URL } from "@/lib/api";
@@ -24,6 +24,7 @@ export default function LoginPage() {
   const { session, ready, signIn } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [demo, setDemo] = useState<DemoAccount[]>([]);
@@ -105,6 +106,9 @@ export default function LoginPage() {
                 id="username"
                 data-testid="login-username"
                 autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 autoFocus
                 required
                 value={username}
@@ -114,16 +118,29 @@ export default function LoginPage() {
             </label>
             <label className="block">
               <span className="text-sm font-medium text-ink">Password</span>
-              <input
-                id="password"
-                data-testid="login-password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[15px] text-ink shadow-card outline-none focus:border-brand/60"
-              />
+              <span className="relative mt-1.5 block">
+                <input
+                  id="password"
+                  data-testid="login-password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface py-2.5 pl-3.5 pr-11 text-[15px] text-ink shadow-card outline-none focus:border-brand/60"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted hover:text-ink"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
+                </button>
+              </span>
             </label>
             {error && (
               <p role="alert" data-testid="login-error" className="rounded-lg bg-badsoft px-3 py-2 text-sm text-bad">
