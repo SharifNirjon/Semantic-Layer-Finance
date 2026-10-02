@@ -26,7 +26,7 @@ async def main() -> None:
     q = next(x for x in questions if x["id"] == QUESTION_ID)
     gateway = McpGateway("http://localhost:8765/mcp")
     await gateway.discover()
-    agent = Agent(OracleProvider([q]), gateway)  # type: ignore[arg-type]
+    agent = Agent(OracleProvider([q]), gateway)
     events = [e async for e in agent.run(q["question"], [], identity(q["role"]))]
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps({"question": q["question"], "events": events}, indent=1), encoding="utf-8")
