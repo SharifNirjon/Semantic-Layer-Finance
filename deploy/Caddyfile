@@ -1,0 +1,15 @@
+# One origin for the UI and the API: the browser calls https://DOMAIN/api/..., so there is no CORS.
+# Access control is the app's own sign-in (admin-managed accounts); every API call needs a valid token.
+{$DOMAIN} {
+	encode zstd gzip
+
+	handle_path /api/* {
+		reverse_proxy api:8000 {
+			flush_interval -1 # stream chat (SSE) without buffering
+		}
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}

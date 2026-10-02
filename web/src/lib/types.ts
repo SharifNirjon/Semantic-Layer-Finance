@@ -6,6 +6,24 @@ export interface Session {
   role: Role;
   branch_id: number | null;
   display_name: string;
+  is_admin: boolean;
+}
+
+export interface AppUser {
+  username: string;
+  display_name: string;
+  role: Role;
+  branch_id: number | null;
+  is_admin: boolean;
+  active: boolean;
+  created_at: string;
+  last_login: string | null;
+}
+
+export interface Branch {
+  branch_id: number;
+  branch: string;
+  region: string;
 }
 
 export type Row = Record<string, string | number | null>;

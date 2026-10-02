@@ -268,3 +268,25 @@ def test_comparison_tables_chart_the_two_periods_with_the_metric_unit():
     assert tables[0].metric == "churn_rate"
     chart = resolve_chart(None, tables)
     assert chart and chart.y == ["period_a", "period_b"] and chart.x == "segment"
+
+
+async def test_gemini_retries_go_to_the_fallback_model(monkeypatch):
+    from types import SimpleNamespace
+
+    from app.providers import common
+    from app.providers.gemini import GeminiProvider
+    from google.genai import errors
+
+    monkeypatch.setattr(common, "BASE_DELAY_S", 0.0)
+    called: list[str] = []
+
+    async def generate_content(model: str, contents: Any, config: Any) -> Any:
+        called.append(model)
+        if len(called) < 3:
+            raise errors.ServerError(503, {"error": {"code": 503, "message": "high demand", "status": "UNAVAILABLE"}})
+        return SimpleNamespace(text="{}")
+
+    client = SimpleNamespace(aio=SimpleNamespace(models=SimpleNamespace(generate_content=generate_content)))
+    provider = GeminiProvider("", "primary-model", client=client, fallback_model="backup-model")  # type: ignore[arg-type]
+    assert await provider.generate_json("sys", [Message("user", "hi")], {"type": "object"}) == "{}"
+    assert called == ["primary-model", "backup-model", "primary-model"]

@@ -1,0 +1,16 @@
+# Shared-proxy mode: web and api join the existing Caddy's network under stable aliases;
+# deploy/register_site.py adds the site block (gba-web / gba-api upstreams) to that Caddy's Caddyfile.
+services:
+  api:
+    networks:
+      default: {}
+      proxy: {aliases: [gba-api]}
+  web:
+    networks:
+      default: {}
+      proxy: {aliases: [gba-web]}
+
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:?set PROXY_NETWORK in .env}

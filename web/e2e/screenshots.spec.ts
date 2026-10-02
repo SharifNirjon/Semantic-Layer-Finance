@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
-import { mockChat, switchRole } from "./helpers";
+import { mockChat, signIn, switchRole } from "./helpers";
 
 // Fallback screenshots for the live demo (make screenshots). Skipped unless CAPTURE=1.
 const OUT = path.resolve(__dirname, "../../docs/fallback");
@@ -10,6 +10,7 @@ test.skip(!process.env.CAPTURE, "set CAPTURE=1 to record fallback screenshots");
 
 test("record demo steps", async ({ page }) => {
   await mockChat(page);
+  await signIn(page, "CMO");
   await page.goto("/dashboard");
   await expect(page.getByTestId("kpi-card")).toHaveCount(6);
   await page.waitForTimeout(1200);

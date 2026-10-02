@@ -1,13 +1,14 @@
 "use client";
 
-import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, CalendarDays, Info, Minus, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import Chart from "@/components/Chart";
 import DataTable from "@/components/DataTable";
-import { Card, EmptyState, ErrorState, Skeleton } from "@/components/ui";
+import Sparkline from "@/components/Sparkline";
+import { Card, EmptyState, ErrorState, PageHeader, Pill, SectionTitle, Skeleton } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import type { Block, DashboardView, Kpi } from "@/lib/types";
+import type { Block, DashboardView, Kpi, Row } from "@/lib/types";
 
 /** Presentation only: whether an increase is good news for the metric. */
 const HIGHER_IS_BETTER: Record<string, boolean> = {
@@ -25,21 +26,39 @@ function unitLookup(block: Block) {
   return (metric: string) => block.definitions.find((d) => d.name === metric)?.unit ?? "count";
 }
 
-function KpiCard({ k }: { k: Kpi }) {
+function KpiCard({ k, trend }: { k: Kpi; trend: Row[] | null }) {
   const dir = k.change === null || k.change === 0 ? 0 : k.change > 0 ? 1 : -1;
   const good = dir === 0 ? null : (dir > 0) === (HIGHER_IS_BETTER[k.metric] ?? true);
   const Icon = dir > 0 ? ArrowUpRight : dir < 0 ? ArrowDownRight : Minus;
+  const tone = good === null ? "bg-sunken text-ink2" : good ? "bg-goodsoft text-good" : "bg-badsoft text-bad";
   return (
-    <div className="rounded-xl border border-line bg-surface p-4 shadow-sm" data-testid="kpi-card" title={k.definition}>
-      <p className="text-xs font-medium text-ink2">{k.title}</p>
-      <p className="mt-2 text-2xl font-semibold tabular-nums text-ink" data-testid="kpi-value">
+    <div
+      className="group flex flex-col rounded-2xl border border-line bg-surface p-4 shadow-card transition hover:-translate-y-0.5 hover:shadow-float"
+      data-testid="kpi-card"
+      title={k.definition}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[13px] font-medium leading-snug text-ink2">{k.title}</p>
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted opacity-0 transition group-hover:opacity-100" aria-hidden />
+      </div>
+      <p className="num mt-2 text-[22px] sm:text-[26px] font-semibold leading-tight text-ink" data-testid="kpi-value">
         {k.display}
       </p>
-      <p className={`mt-2 flex items-center gap-1 text-xs font-medium ${good === null ? "text-ink2" : good ? "text-good" : "text-bad"}`}>
-        <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        <span>{k.change_display}</span>
-      </p>
-      <p className="mt-0.5 text-[11px] text-muted">vs previous month ({k.previous_display})</p>
+      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs font-semibold ${tone}`}>
+          <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          {k.change_display}
+        </span>
+        <span className="text-[11px] text-muted">vs prior month</span>
+      </div>
+      <div className="mt-auto pt-3">
+        {trend ? (
+          <Sparkline rows={trend} y={k.metric} color="var(--brand)" />
+        ) : (
+          <p className="line-clamp-2 h-12 pt-1 text-[11px] leading-snug text-muted">{k.definition}</p>
+        )}
+        <p className="mt-1 truncate text-[11px] text-muted">Previous: {k.previous_display}</p>
+      </div>
     </div>
   );
 }
@@ -47,14 +66,15 @@ function KpiCard({ k }: { k: Kpi }) {
 function SectionSkeleton() {
   return (
     <div className="space-y-6" aria-busy="true" data-testid="dashboard-skeleton">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
+      <Skeleton className="h-20" />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 2xl:grid-cols-6">
         {Array.from({ length: 6 }, (_, i) => (
-          <Skeleton key={i} className="h-28" />
+          <Skeleton key={i} className="h-48" />
         ))}
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         {Array.from({ length: 4 }, (_, i) => (
-          <Skeleton key={i} className="h-72" />
+          <Skeleton key={i} className="h-80" />
         ))}
       </div>
     </div>
@@ -69,6 +89,7 @@ export default function DashboardPage() {
 }
 
 function DashboardBody({ token }: { token: string }) {
+  const { session } = useAuth();
   const [views, setViews] = useState<Views | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -102,78 +123,109 @@ function DashboardBody({ token }: { token: string }) {
   const nim = byId("nim");
   const churn = byId("churn_segment");
   const channels = byId("channels");
+  // KPI sparklines reuse the monthly trend blocks already fetched (same governed metric, same role)
+  const trendFor = (metric: string) => charts.find((c) => c.columns.includes(metric) && !c.columns.some((col) => ["segment", "channel"].includes(col)))?.rows ?? null;
 
   if (kpis.length === 0) return <EmptyState title="No data for this role" hint="The signed-in role has no rows in the selected period." />;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-xl font-semibold text-ink">Executive dashboard</h1>
-        <p className="text-xs text-ink2" data-testid="as-of">
-          Data as of {overview?.as_of} · every figure traces to a governed metric definition (hover a card for its definition)
-        </p>
-      </div>
+    <div className="fade-in">
+      <PageHeader
+        eyebrow="Executive overview"
+        title={session?.role === "branch_manager" ? "Branch performance" : "Bank performance at a glance"}
+        description="Every figure traces to a certified metric in the governed semantic layer. Hover a tile for its definition."
+        actions={
+          <>
+            <Pill tone="brand">
+              <CalendarDays className="h-3.5 w-3.5" aria-hidden />
+              <span data-testid="as-of">Data as of {overview?.as_of}</span>
+            </Pill>
+            <Pill tone="gold">
+              <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+              Certified metrics
+            </Pill>
+          </>
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-6" data-testid="kpi-grid">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 2xl:grid-cols-6" data-testid="kpi-grid">
         {kpis.map((k) => (
-          <KpiCard key={k.metric} k={k} />
+          <KpiCard key={k.metric} k={k} trend={trendFor(k.metric)} />
         ))}
       </div>
 
+      <SectionTitle title="Balance sheet" hint="Month-end balances" />
       <div className="grid gap-4 lg:grid-cols-2">
         {deposits && (
           <>
             <Card testId="chart-deposits">
-              <Chart title="Total deposits (month end)" type="line" rows={deposits.rows} displayRows={deposits.display_rows} columns={deposits.columns} x="period" y={["total_deposits"]} unitOf={unitLookup(deposits)} />
+              <Chart title="Total deposits" subtitle="Month end, BDT" type="line" rows={deposits.rows} displayRows={deposits.display_rows} columns={deposits.columns} x="period" y={["total_deposits"]} unitOf={unitLookup(deposits)} />
             </Card>
             <Card testId="chart-casa">
-              <Chart title="CASA ratio" type="line" rows={deposits.rows} displayRows={deposits.display_rows} columns={deposits.columns} x="period" y={["casa_ratio"]} unitOf={unitLookup(deposits)} />
+              <Chart title="CASA ratio" subtitle="Current + savings share of deposits" type="line" rows={deposits.rows} displayRows={deposits.display_rows} columns={deposits.columns} x="period" y={["casa_ratio"]} unitOf={unitLookup(deposits)} />
             </Card>
           </>
         )}
+      </div>
+
+      <SectionTitle title="Risk and profitability" />
+      <div className="grid gap-4 lg:grid-cols-2">
         {npl && (
           <Card testId="chart-npl">
-            <Chart title="NPL ratio" type="line" rows={npl.rows} displayRows={npl.display_rows} columns={npl.columns} x="period" y={["npl_ratio"]} unitOf={unitLookup(npl)} />
+            <Chart title="NPL ratio" subtitle="Non-performing share of loans outstanding" type="line" rows={npl.rows} displayRows={npl.display_rows} columns={npl.columns} x="period" y={["npl_ratio"]} unitOf={unitLookup(npl)} />
           </Card>
         )}
         {nim && (
           <Card testId="chart-nim">
-            <Chart title="Net interest margin (annualised)" type="line" rows={nim.rows} displayRows={nim.display_rows} columns={nim.columns} x="period" y={["nim"]} unitOf={unitLookup(nim)} />
+            <Chart title="Net interest margin" subtitle="Annualised" type="line" rows={nim.rows} displayRows={nim.display_rows} columns={nim.columns} x="period" y={["nim"]} unitOf={unitLookup(nim)} />
           </Card>
         )}
+      </div>
+
+      <SectionTitle title="Customers and channels" />
+      <div className="grid gap-4 lg:grid-cols-2">
         {churn && (
           <Card testId="chart-churn">
-            <Chart title="Monthly churn rate by segment" type="line" rows={churn.rows} displayRows={churn.display_rows} columns={churn.columns} x="period" y={["churn_rate"]} series="segment" unitOf={unitLookup(churn)} />
+            <Chart title="Monthly churn rate by segment" subtitle="Segment as of the business date" type="line" rows={churn.rows} displayRows={churn.display_rows} columns={churn.columns} x="period" y={["churn_rate"]} series="segment" unitOf={unitLookup(churn)} />
           </Card>
         )}
         {channels && (
           <Card testId="chart-channels">
-            <Chart title="Transactions by channel" type="line" rows={channels.rows} displayRows={channels.display_rows} columns={channels.columns} x="period" y={["txn_count"]} series="channel" unitOf={unitLookup(channels)} />
+            <Chart title="Transactions by channel" subtitle="Monthly count" type="line" rows={channels.rows} displayRows={channels.display_rows} columns={channels.columns} x="period" y={["txn_count"]} series="channel" unitOf={unitLookup(channels)} />
           </Card>
         )}
       </div>
 
       {segments?.tables?.[0] && (
-        <Card title="Segments (latest quarter)" testId="table-segments">
-          <DataTable columns={segments.tables[0].columns} rows={segments.tables[0].display_rows} />
-        </Card>
+        <>
+          <SectionTitle title="Segments" hint="Latest quarter" />
+          <Card testId="table-segments">
+            <DataTable columns={segments.tables[0].columns} rows={segments.tables[0].display_rows} rawRows={segments.tables[0].rows} bars={["total_deposits"]} />
+          </Card>
+        </>
       )}
       {branches?.tables?.[0] && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card title="Branches (latest month)" testId="table-branches">
-            <DataTable columns={branches.tables[0].columns} rows={branches.tables[0].display_rows} />
-          </Card>
-          {branches.charts?.[0] && (
-            <Card testId="chart-npl-region">
-              <Chart title="NPL ratio by region (quarterly)" type="line" rows={branches.charts[0].rows} displayRows={branches.charts[0].display_rows} columns={branches.charts[0].columns} x="period" y={["npl_ratio"]} series="region" unitOf={unitLookup(branches.charts[0])} />
+        <>
+          <SectionTitle title="Branch network" hint="Latest month" />
+          <div className="grid gap-4 xl:grid-cols-5">
+            <Card title="Branches" subtitle="Ranked by total deposits" testId="table-branches" className="xl:col-span-3">
+              <DataTable columns={branches.tables[0].columns} rows={branches.tables[0].display_rows} rawRows={branches.tables[0].rows} bars={["total_deposits"]} maxHeight="max-h-[26rem]" />
             </Card>
-          )}
-        </div>
+            {branches.charts?.[0] && (
+              <Card testId="chart-npl-region" className="xl:col-span-2">
+                <Chart title="NPL ratio by region" subtitle="Quarterly" type="line" rows={branches.charts[0].rows} displayRows={branches.charts[0].display_rows} columns={branches.charts[0].columns} x="period" y={["npl_ratio"]} series="region" unitOf={unitLookup(branches.charts[0])} height="h-80" />
+              </Card>
+            )}
+          </div>
+        </>
       )}
       {campaigns?.tables?.[0] && (
-        <Card title="Campaign performance (sorted by cost per acquired customer)" testId="table-campaigns">
-          <DataTable columns={campaigns.tables[0].columns} rows={campaigns.tables[0].display_rows} />
-        </Card>
+        <>
+          <SectionTitle title="Marketing campaigns" hint="Sorted by cost per acquired customer" />
+          <Card testId="table-campaigns">
+            <DataTable columns={campaigns.tables[0].columns} rows={campaigns.tables[0].display_rows} rawRows={campaigns.tables[0].rows} bars={["cac"]} titles={{ cac: "Cost per acquisition" }} />
+          </Card>
+        </>
       )}
     </div>
   );

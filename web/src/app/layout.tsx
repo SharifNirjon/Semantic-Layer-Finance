@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import Header from "@/components/Header";
+import AppShell from "@/components/AppShell";
 import { AuthProvider } from "@/lib/auth";
+// Fonts are bundled (no runtime call to a font CDN, so locked-down bank networks render the same).
+import "@fontsource-variable/inter";
+import "@fontsource-variable/jetbrains-mono";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Governed Banking Analytics",
-  description: "One governed definition for every number: copilot, dashboard and audit trail.",
+  description: "One governed definition for every number: AI assistant, dashboard and audit trail.",
 };
 
 // Sets the theme before first paint so there is no light/dark flash.
@@ -20,8 +23,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className="min-h-screen">
         <AuthProvider>
-          <Header />
-          <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+          <AppShell>{children}</AppShell>
         </AuthProvider>
       </body>
     </html>

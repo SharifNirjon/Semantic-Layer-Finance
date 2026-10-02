@@ -40,7 +40,19 @@ export async function mockChat(page: Page) {
 
 const BANNERS = { CMO: "Chief Marketing Officer", "Branch manager": "Narayanganj", Analyst: "Analyst" } as const;
 
+/** Signs in with a demo account from the sign-in page (the test stack runs with DEMO_LOGINS enabled). */
+export async function signIn(page: Page, label: keyof typeof BANNERS) {
+  await page.goto("/login");
+  await page.getByTestId("demo-accounts").getByRole("button", { name: label, exact: true }).click();
+  await expect(page).not.toHaveURL(/\/login/);
+  await expect(page.getByTestId("role-banner")).toContainText(BANNERS[label]);
+}
+
+/** Signs out and back in as another role, then returns to the page the test was on. */
 export async function switchRole(page: Page, label: keyof typeof BANNERS) {
-  await page.getByTestId("role-switcher").selectOption({ label });
+  const url = page.url();
+  await page.getByTestId("sign-out").click();
+  await signIn(page, label);
+  await page.goto(url);
   await expect(page.getByTestId("role-banner")).toContainText(BANNERS[label]);
 }

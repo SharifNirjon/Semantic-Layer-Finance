@@ -11,14 +11,16 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
+import httpx
+import jwt
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from . import db
+from . import db, users
 from .agent import Agent
-from .auth import DEMO_USERS, CurrentUser, login
+from .auth import DEMO_LOGINS, DEMO_USERS, JWT_SECRET, AdminUser, CurrentUser, login
 from .cache import ResponseCache
 from .dashboard import Dashboards
 from .demo_questions import DEMO_QUESTIONS
@@ -27,6 +29,7 @@ from .models import ChatRequest
 from .providers import LLMProvider, ProviderError, create_provider
 
 MCP_URL = os.getenv("MCP_URL", "http://localhost:8765/mcp")
+CUBE_URL = os.getenv("CUBE_URL", "http://localhost:4000")
 CACHE_PATH = Path(os.getenv("CACHE_DIR", "/tmp/copilot-cache")) / "demo_answers.json"
 
 
@@ -46,6 +49,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     state.gateway = McpGateway(MCP_URL)
     state.dashboards = Dashboards(state.gateway)
     state.cache = ResponseCache(CACHE_PATH)
+    await users.ensure_schema()
     try:
         state.provider = create_provider()
     except ProviderError as exc:  # the API still serves dashboards and the audit log without an LLM key
@@ -71,16 +75,102 @@ class LoginRequest(BaseModel):
     password: str
 
 
+def session_payload(username: str, role: str, branch_id: int | None, display_name: str, is_admin: bool,
+                    token: str | None = None) -> dict[str, Any]:
+    body = {"username": username, "role": role, "branch_id": branch_id, "display_name": display_name, "is_admin": is_admin}
+    return {"token": token, **body} if token else body
+
+
 @app.post("/login")
 async def login_endpoint(body: LoginRequest) -> dict[str, Any]:
-    user, token = login(body.username, body.password)
-    return {"token": token, "username": user.username, "role": user.role, "branch_id": user.branch_id,
-            "display_name": user.display_name}
+    user, token = await login(body.username, body.password)
+    return session_payload(user.username, user.role, user.branch_id, user.display_name, user.is_admin, token)
+
+
+@app.get("/me")
+async def me(who: CurrentUser) -> dict[str, Any]:
+    account = await users.get(who.user)
+    if account:
+        if not account["active"]:
+            raise HTTPException(401, "This account has been deactivated")
+        return session_payload(who.user, account["role"], account["branch_id"], account["display_name"], account["is_admin"])
+    demo = DEMO_USERS.get(who.user) if DEMO_LOGINS else None
+    if demo is None:
+        raise HTTPException(401, "Unknown account")
+    return session_payload(demo.username, demo.role, demo.branch_id, demo.display_name, False)
 
 
 @app.get("/demo-users")
 async def demo_users() -> list[dict[str, Any]]:
+    if not DEMO_LOGINS:
+        return []
     return [{"username": u.username, "role": u.role, "display_name": u.display_name} for u in DEMO_USERS.values()]
+
+
+# -- user administration ------------------------------------------------------------------------------------------
+class NewUser(BaseModel):
+    username: str
+    display_name: str = ""
+    password: str
+    role: str
+    branch_id: int | None = None
+    is_admin: bool = False
+
+
+class UserChanges(BaseModel):
+    display_name: str | None = None
+    password: str | None = None
+    role: str | None = None
+    branch_id: int | None = None
+    is_admin: bool | None = None
+    active: bool | None = None
+
+
+@app.get("/admin/users")
+async def admin_list_users(_: AdminUser) -> list[dict[str, Any]]:
+    return await users.list_all()
+
+
+@app.post("/admin/users", status_code=201)
+async def admin_create_user(body: NewUser, _: AdminUser) -> dict[str, Any]:
+    try:
+        return await users.create(body.username, body.display_name, body.password, body.role, body.branch_id, body.is_admin)
+    except users.UserError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.patch("/admin/users/{username}")
+async def admin_update_user(username: str, body: UserChanges, who: AdminUser) -> dict[str, Any]:
+    try:
+        return await users.update(username, body.model_dump(exclude_unset=True), who.user)
+    except users.UserError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.delete("/admin/users/{username}", status_code=204)
+async def admin_delete_user(username: str, who: AdminUser) -> None:
+    try:
+        await users.delete(username, who.user)
+    except users.UserError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.get("/admin/branches")
+async def admin_branches(_: AdminUser) -> list[dict[str, Any]]:
+    """Branch ids and names for assigning a branch manager, read through the semantic layer."""
+    token = jwt.encode({"sub": "admin-ui", "role": "cmo", "exp": int(time.time()) + 60}, JWT_SECRET, algorithm="HS256")
+    query = {"dimensions": ["branches.branch_id", "branches.branch", "branches.region"], "order": {"branches.branch": "asc"}}
+    async with httpx.AsyncClient(base_url=CUBE_URL, timeout=30) as http:
+        for _attempt in range(10):
+            r = await http.post("/cubejs-api/v1/load", headers={"Authorization": token}, json={"query": query})
+            body = r.json()
+            if body.get("error") != "Continue wait":
+                break
+            await asyncio.sleep(1)
+    if r.status_code != 200 or "data" not in body:
+        raise HTTPException(502, body.get("error", "Could not load branches"))
+    return [{"branch_id": int(row["branches.branch_id"]), "branch": row["branches.branch"], "region": row["branches.region"]}
+            for row in body["data"]]
 
 
 @app.get("/suggestions")

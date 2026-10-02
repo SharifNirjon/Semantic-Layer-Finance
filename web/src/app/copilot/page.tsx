@@ -1,11 +1,12 @@
 "use client";
 
-import { Loader2, RotateCcw, Send, Sparkles, Wrench } from "lucide-react";
+import { ArrowUp, BadgeCheck, Check, Database, Loader2, Lock, RotateCcw, Sparkles, TrendingUp, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import ResponseCard from "@/components/ResponseCard";
+import ResponseCard, { VerifiedBadge } from "@/components/ResponseCard";
 import { ErrorState } from "@/components/ui";
-import { API_URL, api, streamChat } from "@/lib/api";
+import { api, streamChat } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { assistantName, useHealth } from "@/lib/health";
 import type { ChatEvent, ChatResponse } from "@/lib/types";
 
 interface Step {
@@ -29,6 +30,8 @@ interface Turn {
   done: boolean;
 }
 
+const ICONS = [TrendingUp, Database, Sparkles, BadgeCheck];
+
 function describe(args: Record<string, unknown>): string {
   const metrics = (args.metrics ?? (args.metric ? [args.metric] : [])) as string[];
   const dims = (args.dimensions ?? (args.dimension ? [args.dimension] : [])) as string[];
@@ -41,17 +44,10 @@ export default function CopilotPage() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [llmError, setLlmError] = useState<string | null>(null);
-  const [apiDown, setApiDown] = useState<string | null>(null);
+  const { health, down: apiDown } = useHealth();
+  const llmError = health && !health.llm_configured ? (health.llm_error ?? "No language model is configured.") : null;
   const bottom = useRef<HTMLDivElement>(null);
   const abort = useRef<AbortController | null>(null);
-
-  useEffect(() => {
-    fetch(`${API_URL}/health`)
-      .then((r) => r.json())
-      .then((h) => setLlmError(h.llm_configured ? null : (h.llm_error ?? "No language model is configured.")))
-      .catch((e) => setApiDown(e instanceof Error ? e.message : "API unreachable"));
-  }, []);
 
   useEffect(() => {
     if (!session) return;
@@ -107,81 +103,133 @@ export default function CopilotPage() {
   const chips = followUps.length ? followUps : suggestions;
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-4">
+    <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-4xl flex-col gap-5">
       {apiDown && <ErrorState message={`The API is not reachable (${apiDown}). Start the stack with "make up".`} />}
       {llmError && (
-        <div role="status" className="rounded-xl border border-line bg-surface p-4 text-sm text-ink2" data-testid="llm-banner">
-          <p className="font-medium text-ink">The AI model is not configured yet.</p>
-          <p className="mt-1">{llmError} Add a key to <code>.env</code> and restart the api service. Dashboards and the Trust center work without it.</p>
+        <div role="status" className="flex gap-3 rounded-2xl border border-line bg-warnsoft/60 p-4 text-sm text-ink2" data-testid="llm-banner">
+          <Lock className="mt-0.5 h-4 w-4 shrink-0 text-warn" aria-hidden />
+          <div>
+            <p className="font-medium text-ink">The AI model is not configured yet.</p>
+            <p className="mt-1">
+              {llmError} Add a key to <code className="font-mono">.env</code> and restart the api service. Dashboards and the Trust center work without it.
+            </p>
+          </div>
         </div>
       )}
 
       {turns.length === 0 && (
-        <div className="py-10 text-center" data-testid="copilot-empty">
-          <Sparkles className="mx-auto h-8 w-8 text-brand" aria-hidden />
-          <h1 className="mt-3 text-2xl font-semibold text-ink">Ask the governed analytics copilot</h1>
-          <p className="mx-auto mt-2 max-w-xl text-sm text-ink2">
-            Every number comes from a certified metric definition. Answers show their chart, table, definition and the exact query that produced them.
+        <div className="fade-in flex flex-1 flex-col items-center justify-center py-8 text-center" data-testid="copilot-empty">
+          <span className="orb flex h-14 w-14 items-center justify-center rounded-2xl shadow-float">
+            <Sparkles className="h-7 w-7 text-white" aria-hidden />
+          </span>
+          <h1 className="mt-5 text-3xl font-semibold tracking-tight text-ink">Ask {assistantName(health)} about the bank</h1>
+          <p className="mx-auto mt-2 max-w-xl text-[15px] text-ink2">
+            Ask about deposits, churn, risk or campaigns. Every answer shows its chart, table, certified definition and the exact query that produced it.
           </p>
+          <ul className="mt-5 flex flex-wrap justify-center gap-2 text-xs text-ink2">
+            {["Certified metrics only", "Role-aware row security", "Every figure verified", "No SQL, no raw tables"].map((t) => (
+              <li key={t} className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 shadow-card">
+                <Check className="h-3.5 w-3.5 text-good" aria-hidden />
+                {t}
+              </li>
+            ))}
+          </ul>
+          {suggestions.length > 0 && (
+            <div className="mt-8 grid w-full gap-3 text-left sm:grid-cols-2" data-testid="suggestions">
+              {suggestions.slice(0, 6).map((c, i) => {
+                const Icon = ICONS[i % ICONS.length];
+                return (
+                  <button
+                    key={c}
+                    disabled={busy || !!llmError}
+                    onClick={() => void ask(c)}
+                    className="group flex items-start gap-3 rounded-2xl border border-line bg-surface p-4 text-left text-sm text-ink shadow-card transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-float disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brandsoft text-brand">
+                      <Icon className="h-4 w-4" aria-hidden />
+                    </span>
+                    <span className="leading-snug">{c}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
-      <ol className="flex flex-col gap-6" aria-live="polite">
+      <ol className="flex flex-col gap-8" aria-live="polite">
         {turns.map((t) => (
-          <li key={t.id} className="flex flex-col gap-2" data-testid="turn">
-            <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-sm bg-brand px-4 py-2 text-sm text-brandink" data-testid="user-message">
+          <li key={t.id} className="fade-in flex flex-col gap-3" data-testid="turn">
+            <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-gradient-to-br from-brand to-brand2 px-4 py-3 text-[15px] text-white shadow-card" data-testid="user-message">
               {t.question}
-              <div className="mt-1 text-[11px] opacity-80">as {t.askedAs}</div>
+              <div className="mt-1 text-[11px] text-white/75">as {t.askedAs}</div>
             </div>
-            <div className="max-w-full rounded-2xl rounded-bl-sm border border-line bg-surface p-4" data-testid="assistant-message">
-              {t.steps.length > 0 && (
-                <ul className="mb-3 flex flex-wrap gap-2" aria-label="Steps taken">
-                  {t.steps.map((s) => (
-                    <li key={s.id} className="flex items-center gap-1.5 rounded-full border border-line bg-page px-2.5 py-1 text-[11px] text-ink2" data-testid="tool-step">
-                      {s.state === "running" ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden /> : <Wrench className="h-3 w-3" aria-hidden />}
-                      <span className="font-medium text-ink">{s.name}</span>
-                      <span className="max-w-[16rem] truncate">{describe(s.args)}</span>
-                      {s.state !== "running" && <span>{s.state === "error" ? "failed" : `${s.rows ?? 0} rows, ${s.ms} ms`}</span>}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {!t.done && !t.answer && (
-                <p className="flex items-center gap-2 text-sm text-ink2">
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> {t.status}...
-                </p>
-              )}
-              {t.error && <ErrorState message={t.error} />}
-              {t.answer && (
-                <p data-testid="answer-text" className={`whitespace-pre-wrap text-sm leading-relaxed text-ink ${!t.done && !t.response ? "caret" : ""}`}>
-                  {t.answer}
-                </p>
-              )}
-              {t.response && <ResponseCard response={t.response} />}
-              {t.done && session && t.askedAs !== session.display_name && (
-                <button
-                  onClick={() => void ask(t.question)}
-                  className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-brand hover:bg-raised"
-                  data-testid="reask"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Ask again as {session.display_name}
-                </button>
-              )}
+            <div className="flex gap-3">
+              <span className="orb mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl" aria-hidden>
+                <Sparkles className="h-4 w-4 text-white" />
+              </span>
+              <div className="min-w-0 flex-1 rounded-2xl rounded-tl-md border border-line bg-surface p-5 shadow-card" data-testid="assistant-message">
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-ink">{assistantName(health)}</span>
+                  {t.response && <VerifiedBadge response={t.response} />}
+                </div>
+                {t.steps.length > 0 && (
+                  <ul className="mb-4 space-y-1.5 border-l-2 border-line pl-3" aria-label="Steps taken">
+                    {t.steps.map((s) => (
+                      <li key={s.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-ink2" data-testid="tool-step">
+                        {s.state === "running" ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-brand" aria-hidden />
+                        ) : s.state === "error" ? (
+                          <X className="h-3.5 w-3.5 text-bad" aria-hidden />
+                        ) : (
+                          <Check className="h-3.5 w-3.5 text-good" aria-hidden />
+                        )}
+                        <span className="font-mono font-medium text-ink">{s.name}</span>
+                        <span className="max-w-[20rem] truncate">{describe(s.args)}</span>
+                        {s.state !== "running" && (
+                          <span className="text-muted">{s.state === "error" ? "failed" : `${s.rows ?? 0} rows · ${s.ms} ms`}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {!t.done && !t.answer && (
+                  <p className="flex items-center gap-2 text-sm text-ink2">
+                    <Loader2 className="h-4 w-4 animate-spin text-brand" aria-hidden /> {t.status}...
+                  </p>
+                )}
+                {t.error && <ErrorState message={t.error} />}
+                {t.answer && (
+                  <p data-testid="answer-text" className={`whitespace-pre-wrap text-[15px] leading-relaxed text-ink ${!t.done && !t.response ? "caret" : ""}`}>
+                    {t.answer}
+                  </p>
+                )}
+                {t.response && <ResponseCard response={t.response} />}
+                {t.done && session && t.askedAs !== session.display_name && (
+                  <button
+                    onClick={() => void ask(t.question)}
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-brand hover:bg-raised"
+                    data-testid="reask"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Ask again as {session.display_name}
+                  </button>
+                )}
+              </div>
             </div>
           </li>
         ))}
       </ol>
       <div ref={bottom} />
 
-      <div className="sticky bottom-0 -mx-4 border-t border-line bg-page/95 px-4 pb-4 pt-3 backdrop-blur">
-        {chips.length > 0 && (
+      <div className="sticky bottom-0 -mx-4 mt-auto bg-gradient-to-t from-page via-page to-transparent px-4 pb-5 pt-6 sm:-mx-6 sm:px-6">
+        {turns.length > 0 && chips.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-2" data-testid="suggestions">
             {chips.map((c) => (
               <button
                 key={c}
                 disabled={busy || !!llmError}
                 onClick={() => void ask(c)}
-                className="rounded-full border border-line bg-surface px-3 py-1.5 text-left text-xs text-ink2 hover:border-brand hover:text-brand disabled:opacity-50"
+                className="rounded-full border border-line bg-surface px-3 py-1.5 text-left text-xs text-ink2 shadow-card transition hover:border-brand/50 hover:text-brand disabled:opacity-50"
               >
                 {c}
               </button>
@@ -193,8 +241,9 @@ export default function CopilotPage() {
             e.preventDefault();
             void ask(input);
           }}
-          className="flex gap-2"
+          className="flex items-center gap-2 rounded-2xl border border-line bg-surface p-2 shadow-float focus-within:border-brand/50"
         >
+          <Sparkles className="ml-2 h-4 w-4 shrink-0 text-brand" aria-hidden />
           <input
             data-testid="chat-input"
             value={input}
@@ -202,17 +251,19 @@ export default function CopilotPage() {
             placeholder="Ask about churn, deposits, NPL, campaigns..."
             aria-label="Your question"
             maxLength={2000}
-            className="flex-1 rounded-lg border border-line bg-surface px-4 py-2.5 text-sm text-ink placeholder:text-muted"
+            className="min-w-0 flex-1 bg-transparent px-2 py-2 text-[15px] text-ink outline-none placeholder:text-muted"
           />
           <button
             type="submit"
             disabled={busy || !input.trim() || !!llmError}
-            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-brandink disabled:opacity-50"
+            aria-label="Ask"
+            className="flex h-10 items-center gap-1.5 rounded-xl bg-gradient-to-br from-brand to-brand2 px-4 text-sm font-medium text-white shadow-card transition hover:opacity-90 disabled:opacity-40"
           >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <ArrowUp className="h-4 w-4" aria-hidden />}
             Ask
           </button>
         </form>
+        <p className="mt-2 text-center text-[11px] text-muted">Answers are computed by the governed semantic layer and checked before they are shown.</p>
       </div>
     </div>
   );

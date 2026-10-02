@@ -1,0 +1,45 @@
+# Production override for a single VPS. Enabled by COMPOSE_FILE in .env (deploy/deploy.sh sets it).
+# Only Caddy is public (80/443, automatic HTTPS); every other service binds to 127.0.0.1. People sign in with
+# accounts an admin creates in the app (no fixed demo logins in production).
+# The bundled Caddy runs under the "own-proxy" profile. When another Caddy already owns 80/443 (e.g. Hostinger's
+# n8n template), deploy.sh adds docker-compose.shared-proxy.yml and registers this site with that Caddy instead.
+services:
+  postgres:
+    restart: unless-stopped
+    ports: !override ["127.0.0.1:${POSTGRES_PORT:-5432}:5432"]
+  cube:
+    restart: unless-stopped
+    ports: !override ["127.0.0.1:${CUBE_PORT:-4000}:4000"]
+  mcp-server:
+    restart: unless-stopped
+    ports: !override ["127.0.0.1:${MCP_PORT:-8765}:8765"]
+  api:
+    restart: unless-stopped
+    environment:
+      CORS_ORIGINS: https://${DOMAIN:?set DOMAIN in .env}
+      DEMO_LOGINS: "false"
+    ports: !override ["127.0.0.1:${API_PORT:-8000}:8000"]
+  web:
+    restart: unless-stopped
+    build:
+      args:
+        NEXT_PUBLIC_API_URL: https://${DOMAIN:?set DOMAIN in .env}/api
+    ports: !override ["127.0.0.1:${WEB_PORT:-3000}:3000"]
+  caddy:
+    image: caddy:2.10
+    profiles: [own-proxy]
+    restart: unless-stopped
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web: {condition: service_healthy}
+      api: {condition: service_healthy}
+
+volumes:
+  caddy_data:
+  caddy_config:

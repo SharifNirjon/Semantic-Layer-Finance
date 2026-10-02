@@ -1,0 +1,55 @@
+# Deploys main to the VPS on every push (and on demand from the Actions tab).
+# Repo secrets: VPS_HOST (IP or hostname), VPS_SSH_KEY (private key whose public half is in the server's
+# ~/.ssh/authorized_keys). Optional: VPS_USER (default root), VPS_PORT (default 22),
+# VPS_APP_DIR (default /root/Semantic-Layer-Finance), VPS_KNOWN_HOSTS (output of ssh-keyscan; pins the host key).
+# The code is copied with rsync, so the server needs no GitHub credentials. .env and data stay on the server.
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      HOST: ${{ secrets.VPS_HOST }}
+      USER_NAME: ${{ secrets.VPS_USER || 'root' }}
+      PORT: ${{ secrets.VPS_PORT || '22' }}
+      APP_DIR: ${{ secrets.VPS_APP_DIR || '/root/Semantic-Layer-Finance' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets
+        run: |
+          if [ -z "$HOST" ]; then echo "::error::Add the VPS_HOST and VPS_SSH_KEY repository secrets first."; exit 1; fi
+
+      - name: Set up SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+          if [ -n "$KNOWN_HOSTS" ]; then printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts; else ssh-keyscan -p "$PORT" "$HOST" > ~/.ssh/known_hosts; fi
+          printf 'Host vps\n  HostName %s\n  User %s\n  Port %s\n  IdentityFile ~/.ssh/id_deploy\n  ServerAliveInterval 30\n' \
+            "$HOST" "$USER_NAME" "$PORT" > ~/.ssh/config
+
+      - name: Copy code
+        run: |
+          ssh vps "mkdir -p '$APP_DIR' && (command -v rsync >/dev/null || (apt-get update -qq && apt-get install -y -qq rsync))"
+          rsync -az --delete \
+            --exclude .git --exclude .env --exclude 'data/' --exclude node_modules --exclude .next \
+            --exclude .venv --exclude 'dbt/target/' --exclude 'dbt/logs/' --exclude 'dbt/dbt_packages/' \
+            ./ "vps:$APP_DIR/"
+
+      - name: Build and restart
+        run: |
+          SUDO=$([ "$USER_NAME" = root ] && echo "" || echo "sudo -n")
+          ssh vps "cd '$APP_DIR' && $SUDO ./deploy/deploy.sh < /dev/null"

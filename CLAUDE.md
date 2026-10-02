@@ -5,15 +5,16 @@ Read `README.md` for the picture and `docs/DECISIONS.md` for why things are the 
 
 ## Architecture (one line per service)
 
-* `postgres` warehouse: schemas `raw`, `staging`, `marts`, `audit`.
+* `postgres` warehouse: schemas `raw`, `staging`, `marts`, `audit`, `app` (user accounts).
 * `dbt` (`/dbt`): staging views, mart tables (`fct_*`, `dim_*`; `dim_customer` is SCD Type 2), tests incl. GL reconciliation.
 * `cube` (`/cube`): the **only** reader of `marts`. `model/cubes/*.yml` = metrics (title, description, `meta.owner/formula/time_semantics/unit`),
   `cube.js` = `queryRewrite` security (roles `cmo`, `branch_manager` + `branch_id` row filter, `analyst` blocked from `*_key` dims).
 * `mcp-server` (`/mcp-server/app`): 5 read-only tools, validates names against the catalog (built from Cube `/meta`), collapses
   `period_end`/`average` metrics from month-grain rows, writes `audit.tool_calls`. stdio + streamable HTTP.
 * `api` (`/api/app`): FastAPI. `agent.py` (tool loop, structured answer, guardrail), `providers/` (ONLY place with SDK-specific code),
+  `users.py` + `auth.py` (admin-managed accounts in `app.users`, scrypt hashes; demo logins only when `DEMO_LOGINS=true`),
   `gateway.py` (MCP client), `dashboard.py`, `main.py` (routes).
-* `web` (`/web`): Next.js 16 + Tailwind 4 + Recharts. Pages: `/copilot`, `/dashboard`, `/trust`.
+* `web` (`/web`): Next.js 16 + Tailwind 4 + Recharts. Pages: `/login`, `/copilot`, `/dashboard`, `/trust`, `/admin` (users, admins only).
 
 ## Commands
 
