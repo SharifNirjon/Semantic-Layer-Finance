@@ -30,6 +30,7 @@ class Table(BaseModel):
     columns: list[str]
     rows: list[dict[str, Any]]  # raw values (used for charts)
     display_rows: list[dict[str, str]]  # formatted values (shown to people)
+    metric: str | None = None  # set for comparison tables, whose value columns are period_a / period_b / change
 
 
 class Provenance(BaseModel):

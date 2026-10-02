@@ -11,7 +11,7 @@ questions:
     metrics:
     - total_deposits
     values:
-    - value: 29208848166.67
+    - value: 29548919976.629997
       rel_tol: 0.001
   oracle:
     calls:
@@ -31,7 +31,7 @@ questions:
     metrics:
     - casa_ratio
     values:
-    - value: 0.49026153406420236
+    - value: 0.4856009996111024
       rel_tol: 0.001
   oracle:
     calls:
@@ -51,7 +51,7 @@ questions:
     metrics:
     - active_customers
     values:
-    - value: 38680.0
+    - value: 38555.0
       rel_tol: 0.001
   oracle:
     calls:
@@ -170,7 +170,7 @@ questions:
     metrics:
     - npl_ratio
     values:
-    - value: 0.030984137987067895
+    - value: 0.0392017671818525
       rel_tol: 0.001
   oracle:
     calls:
@@ -192,7 +192,7 @@ questions:
     dimensions:
     - sector
     values:
-    - value: 0.13180485196800257
+    - value: 0.17337223122507037
       rel_tol: 0.001
     answer_contains_any:
     - RMG / Garments
@@ -217,7 +217,7 @@ questions:
     dimensions:
     - branch
     values:
-    - value: 0.09895971413922466
+    - value: 0.1257658598779689
       rel_tol: 0.001
     answer_contains_any:
     - Gazipur
@@ -240,7 +240,7 @@ questions:
     metrics:
     - net_interest_income
     values:
-    - value: 109929000.38999999
+    - value: 311542931.92
       rel_tol: 0.001
   oracle:
     calls:
@@ -260,7 +260,7 @@ questions:
     metrics:
     - nim
     values:
-    - value: 0.026063098266909373
+    - value: 0.0500215611099391
       rel_tol: 0.001
   oracle:
     calls:
@@ -280,7 +280,7 @@ questions:
     metrics:
     - loans_outstanding
     values:
-    - value: 19575200523.35
+    - value: 27989523890.85
       rel_tol: 0.001
   oracle:
     calls:
@@ -300,7 +300,7 @@ questions:
     metrics:
     - digital_share
     values:
-    - value: 0.5306216017035208
+    - value: 0.5306571051551427
       rel_tol: 0.001
   oracle:
     calls:
@@ -394,7 +394,7 @@ questions:
     metrics:
     - cross_sell_rate
     values:
-    - value: 0.6840740740740741
+    - value: 0.6775231481481482
       rel_tol: 0.001
   oracle:
     calls:
@@ -414,7 +414,7 @@ questions:
     metrics:
     - total_deposits
     values:
-    - value: 2899087051.83
+    - value: 3000323458.37
       rel_tol: 0.001
     only_branch: Narayanganj
   oracle:
@@ -591,8 +591,8 @@ questions:
   expect:
     only_branch: Narayanganj
     answer_not_contains:
-    - 29.2 billion
-    - 29.21 billion
+    - 29.5 billion
+    - 29.55 billion
   oracle:
     calls:
     - tool: query_metrics

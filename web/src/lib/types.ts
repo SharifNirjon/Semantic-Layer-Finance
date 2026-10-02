@@ -28,6 +28,7 @@ export interface Table {
   columns: string[];
   rows: Row[];
   display_rows: Record<string, string>[];
+  metric?: string | null;
 }
 
 export interface ChartPayload {

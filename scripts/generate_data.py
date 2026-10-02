@@ -69,7 +69,7 @@ PRODUCT_PROB = {
     "Student": [0.97, 0.00, 0.00, 0.22, 0.00, 0.00, 0.00, 0.00],
 }
 SEGMENT_BALANCE_MULT = {"Retail": 1.0, "Young Professionals": 1.6, "Premium": 6.0, "SME": 4.0, "Student": 0.25}
-OPEN_RECENCY = {"CUR": 1.2, "DPS": 1.0, "FD": 0.9, "PL": 1.0, "SME": 1.0, "HL": 1.0, "CC": 1.2, "SAV": 1.5}
+OPEN_RECENCY = {"CUR": 1.2, "DPS": 1.0, "FD": 0.9, "PL": 1.7, "SME": 1.7, "HL": 1.7, "CC": 1.7, "SAV": 1.5}
 
 SME_SECTORS = ["RMG / Garments", "Textile", "Agriculture", "Trading", "Food Processing", "Construction", "Transport", "Pharma"]
 SME_SECTOR_P = [0.24, 0.10, 0.14, 0.20, 0.08, 0.10, 0.07, 0.07]
@@ -77,7 +77,7 @@ SLIP_BASE = {
     "RMG / Garments": 0.028, "Textile": 0.034, "Agriculture": 0.050, "Trading": 0.028, "Food Processing": 0.022,
     "Construction": 0.034, "Transport": 0.034, "Pharma": 0.017, "Consumer": 0.022, "Housing": 0.014, "Consumer Cards": 0.034,
 }
-LOAN_PRINCIPAL_MEDIAN = {"PL": 450_000, "SME": 2_200_000, "HL": 3_800_000, "CC": 180_000}
+LOAN_PRINCIPAL_MEDIAN = {"PL": 700_000, "SME": 3_400_000, "HL": 5_800_000, "CC": 280_000}
 LOAN_TERM = {"PL": 36, "SME": 36, "HL": 180, "CC": 0}
 STRESS_START_MONTH = 9  # months into the 24-month window
 
@@ -359,7 +359,7 @@ def deposit_balances(rng: np.random.Generator, cal: Calendar, acc: pd.DataFrame,
     inst = 4_000 * np.sqrt(mult[r]) * persist[r] ** 0.5
     bal[r] = inst[:, None] * (age[r] + 1) * (1 + PRODUCTS[3][5] / 24)
     bal = np.where(exists, bal, np.nan)
-    first = exists & ~np.concatenate([np.zeros((len(dep), 1), bool), exists[:, :-1]], axis=1)
+    first = exists & (age == 0)  # only the month an account opens is partially funded
     bal = np.where(first, bal * rng.uniform(0.35, 1.0, bal.shape), bal)
 
     rate = dep.product_code.map({p[1]: p[5] for p in PRODUCTS}).to_numpy()

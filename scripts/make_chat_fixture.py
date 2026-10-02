@@ -12,11 +12,10 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "api"), str(ROOT / "tests" / "eval")]
 
+from app.agent import Agent  # noqa: E402
 from app.gateway import McpGateway  # noqa: E402
 from oracle_provider import OracleProvider  # noqa: E402
 from run_eval import identity  # noqa: E402
-
-from app.agent import Agent  # noqa: E402
 
 QUESTION_ID = "q06"
 OUT = ROOT / "web" / "e2e" / "fixtures" / "chat-events.json"

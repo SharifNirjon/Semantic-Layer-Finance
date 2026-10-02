@@ -8,9 +8,11 @@ import { Collapsible } from "./ui";
 
 /** Chart + table + provenance panels for one validated answer. */
 export default function ResponseCard({ response }: { response: ChatResponse }) {
-  const unitOf = (metric: string) => response.provenance.definitions.find((d) => d.name === metric)?.unit ?? "count";
   const chart = response.chart_spec;
   const source = chart ? response.tables.find((t) => t.call_id === chart.source_call_id) ?? response.tables[0] : null;
+  const defs = response.provenance.definitions;
+  // comparison tables name their value columns period_a/period_b: use the compared metric's unit
+  const unitOf = (col: string) => (defs.find((d) => d.name === col) ?? defs.find((d) => d.name === source?.metric))?.unit ?? "count";
   const p = response.provenance;
 
   return (

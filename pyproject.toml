@@ -25,3 +25,5 @@ markers = [
 
 [tool.ruff.lint.per-file-ignores]
 "scripts/data_quality_report.py" = ["E501"]
+"scripts/warmup.py" = ["E501"]
+"scripts/conflicting_reports.py" = ["E501"]

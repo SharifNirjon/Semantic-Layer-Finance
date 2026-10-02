@@ -36,9 +36,10 @@ function KpiCard({ k }: { k: Kpi }) {
         {k.display}
       </p>
       <p className={`mt-2 flex items-center gap-1 text-xs font-medium ${good === null ? "text-ink2" : good ? "text-good" : "text-bad"}`}>
-        <Icon className="h-3.5 w-3.5" aria-hidden />
-        {k.change_display} <span className="font-normal text-muted">vs previous month ({k.previous_display})</span>
+        <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <span>{k.change_display}</span>
       </p>
+      <p className="mt-0.5 text-[11px] text-muted">vs previous month ({k.previous_display})</p>
     </div>
   );
 }

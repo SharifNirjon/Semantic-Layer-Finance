@@ -57,13 +57,13 @@ def tables_from(records: list[ToolRecord]) -> list[Table]:
         elif rec.name == "compare_periods":
             cols = [*r["dimensions"], "period_a", "period_b", "change", "change_pct"]
             out.append(Table(call_id=rec.call_id, title=f"{r['metric']}: period comparison", columns=cols,
-                             rows=r["rows"], display_rows=r["display_rows"]))
+                             rows=r["rows"], display_rows=r["display_rows"], metric=r["metric"]))
         else:
             cols = [rec.arguments["dimension"], "period_a", "period_b", "change", "change_pct"]
             for key, label in (("top_increases", "biggest increases"), ("top_decreases", "biggest decreases")):
                 if r[key]["rows"]:
                     out.append(Table(call_id=f"{rec.call_id}:{key}", title=f"{r['metric']}: {label}", columns=cols,
-                                     rows=r[key]["rows"], display_rows=r[key]["display_rows"]))
+                                     rows=r[key]["rows"], display_rows=r[key]["display_rows"], metric=r["metric"]))
     return out
 
 
@@ -105,8 +105,10 @@ def resolve_chart(spec: ChartSpec | None, tables: list[Table]) -> ChartPayload |
 def _auto_chart(table: Table) -> ChartPayload | None:
     if len(table.rows) < 2:
         return None
-    metrics = [c for c in table.columns if _numeric(table, c)]
-    dims = [c for c in table.columns if c not in metrics]
+    numeric = [c for c in table.columns if _numeric(table, c)]
+    dims = [c for c in table.columns if c not in numeric]
+    # comparison tables: show the two periods side by side, not the change columns
+    metrics = [c for c in ["period_a", "period_b"] if c in numeric] if table.metric else numeric
     if not metrics or not dims:
         return None
     x = "period" if "period" in dims else dims[0]

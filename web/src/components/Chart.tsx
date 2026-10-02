@@ -75,7 +75,7 @@ export default function Chart({ title, type, rows, displayRows, columns, x, y, s
                 <Tooltip formatter={tooltipFmt} contentStyle={{ background: "var(--raised)", border: "1px solid var(--line)", borderRadius: 8 }} />
                 {keys.length > 1 && <Legend />}
                 {keys.map((k) => (
-                  <Line key={k} type="monotone" dataKey={k} name={k} stroke={colorFor(k)} strokeWidth={2} dot={{ r: 3, stroke: "var(--surface)", strokeWidth: 2 }} activeDot={{ r: 5 }} />
+                  <Line key={k} isAnimationActive={false} type="monotone" dataKey={k} name={k} stroke={colorFor(k)} strokeWidth={2} dot={{ r: 3, stroke: "var(--surface)", strokeWidth: 2 }} activeDot={{ r: 5 }} />
                 ))}
               </LineChart>
             ) : (
@@ -95,7 +95,7 @@ export default function Chart({ title, type, rows, displayRows, columns, x, y, s
                 <Tooltip formatter={tooltipFmt} cursor={{ fill: "var(--line)", opacity: 0.4 }} contentStyle={{ background: "var(--raised)", border: "1px solid var(--line)", borderRadius: 8 }} />
                 {keys.length > 1 && <Legend />}
                 {keys.map((k) => (
-                  <Bar key={k} dataKey={k} name={k} fill={colorFor(k)} radius={horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]} stroke="var(--surface)" strokeWidth={2} />
+                  <Bar key={k} isAnimationActive={false} dataKey={k} name={k} fill={colorFor(k)} radius={horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]} stroke="var(--surface)" strokeWidth={2} />
                 ))}
               </BarChart>
             )}

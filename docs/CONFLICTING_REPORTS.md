@@ -7,9 +7,9 @@ Nobody in these examples made an error: each report applied a reasonable but *di
 
 | Report | Definition used | Reported value |
 |---|---|---|
-| Marketing deck | Customers with a transaction in the last 30 days | 31,443 |
+| Marketing deck | Customers with a transaction in the last 30 days | 31,383 |
 | Branch operations | Customers with an open relationship (not churned) | 43,200 |
-| **Governed `active_customers`** | Customers with a transaction in the 90 days to period end | **38,680** |
+| **Governed `active_customers`** | Customers with a transaction in the 90 days to period end | **38,555** |
 
 ## "What was Young Professionals churn in Q3 2026?"
 

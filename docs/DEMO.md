@@ -19,13 +19,13 @@ Open `docs/CONFLICTING_REPORTS.md`.
 
 | Question | Marketing deck | Branch operations / Finance | Governed metric |
 |---|---|---|---|
-| Active customers | **31,443** (transacted in 30 days) | **43,200** (not churned) | **38,680** (transacted in 90 days to period end) |
+| Active customers | **31,383** (transacted in 30 days) | **43,200** (not churned) | **38,555** (transacted in 90 days to period end) |
 | Young Professionals churn, Q3 2026 | **7.84%** (churned / customers at end) | **7.92%** (churned / customers at start) | **2.61%** a month (churned / sum of monthly opening customers) |
 
 Say: "Nobody is wrong; they use different definitions. Here there is one." Then:
 
 * **Trust center -> Metric dictionary**: search "active". Show the definition, owner (Head of Retail Banking), formula, source tables and caveats.
-* **Executive dashboard**: the *Active customers* card shows **38,680** - hover for the definition.
+* **Executive dashboard**: the *Active customers* card shows **38,555** - hover for the definition.
 
 ## 2. Five CMO questions (4 min) - Copilot page
 
@@ -35,12 +35,12 @@ calculated"** (shows the exact Cube query and that figures were verified).
 | # | Question | What you should see |
 |---|---|---|
 | 1 | *Why did Young Professionals churn rise last quarter?* | Young Professionals monthly churn **2.61%** in Q3 2026 vs **0.89%** in Q2 (**+1.72 pp, +193.5%**). Monthly: Apr 0.79%, May 0.97%, Jun 0.90%, **Jul 2.00%, Aug 2.64%, Sep 3.16%**. Other segments moved by 0.1 pp or less (SME 0.81%, Student 1.01%, Premium 0.38%, Retail 0.73%). Action: retention offer / early-warning outreach to the segment. |
-| 2 | *Over the last 12 months, which branches saw their NPL ratio rise the most, and which sector is behind it?* | **Gazipur 4.44% -> 9.90% (+5.46 pp)** and **Narayanganj 5.29% -> 8.09% (+2.79 pp)** lead the increases. Sector: **RMG / Garments 4.65% -> 13.18% (+8.53 pp)**. Drill: RMG loans in Gazipur are **17.80%** NPL, in Narayanganj **15.14%**. Bank-wide NPL ratio is **3.10%**. Action: tighten RMG supply-chain exposure review in those two branches. |
-| 3 | *Is our CASA ratio improving, and what is driving it?* | **No - it fell from 59.19% (Q4 2024) to 49.03% (Q3 2026)** while deposits grew from BDT 15.07 billion to BDT 29.21 billion. Driver: Fixed Deposits (BDT 13.94 billion of BDT 29.21 billion). Action: price/promote current and savings accounts to rebalance funding costs. |
+| 2 | *Over the last 12 months, which branches saw their NPL ratio rise the most, and which sector is behind it?* | **Gazipur 4.47% -> 12.58% (+8.10 pp)** and **Narayanganj 3.82% -> 11.00% (+7.18 pp)** lead the increases. Sector: **RMG / Garments 4.77% -> 17.34% (+12.56 pp)**. Drill: RMG loans in Gazipur are **22.70%** NPL, in Narayanganj **20.55%**. Bank-wide NPL ratio is **3.92%**. Action: tighten RMG supply-chain exposure review in those two branches. |
+| 3 | *Is our CASA ratio improving, and what is driving it?* | **No - it fell from 58.64% (Q4 2024) to 48.56% (Q3 2026)** while deposits grew from BDT 15.20 billion to BDT 29.55 billion. Driver: Fixed Deposits (BDT 14.27 billion of BDT 29.55 billion). Action: price/promote current and savings accounts to rebalance funding costs. |
 | 4 | *Which campaign had the best cost per acquired customer, and which had high response but poor conversion?* | Best CAC: **Student Referral Rewards, BDT 2,055** (response 11.14%, conversion 37.44%). High response, poor conversion: **Eid Cashback Blast**, response **26.72%**, conversion **2.52%**, CAC **BDT 54,286** on BDT 1.90 million spend. |
-| 5 | *How are mobile transactions trending against ATM transactions?* | Q4 2024: ATM **73,273** vs Mobile **49,218**. Q3 2026: Mobile **124,943** vs ATM **60,591**. Mobile overtook ATM in **Q3 2025** (July 2025 is the first month). |
+| 5 | *How are mobile transactions trending against ATM transactions?* | Q4 2024: ATM **72,997** vs Mobile **48,940**. Q3 2026: Mobile **125,181** vs ATM **60,608**. Mobile overtook ATM in **Q3 2025** (July 2025 is the first month). |
 
-Bonus chip: *What are our total deposits and CASA ratio for September 2026?* -> **BDT 29.21 billion**, **49.03%**.
+Bonus chip: *What are our total deposits and CASA ratio for September 2026?* -> **BDT 29.55 billion**, **48.56%**.
 
 Point out the live **steps** line above each answer (tool calls to the governed layer) and that the model never sees raw tables.
 
@@ -49,8 +49,8 @@ Point out the live **steps** line above each answer (tool calls to the governed 
 Use the **Viewing as** switcher in the header: **Branch manager** (Narayanganj branch).
 
 * Click **Ask again as Branch manager** under answer 2, or open the **Executive dashboard**: every card now shows only the
-  branch - deposits **BDT 2.90 billion**, NPL **8.09%**, active customers **2,584**; the branch table has a single row.
-  RMG / Garments NPL for the branch is **15.14%**.
+  branch - deposits **BDT 3.00 billion**, CASA **57.55%**, NPL **11.00%**, active customers **2,555**; the branch table has a single row.
+  RMG / Garments NPL for the branch is **20.55%** (a small branch book, so other sectors can be lumpy).
 * Ask: *Show me the total deposits of the Gulshan branch for September 2026.* -> declined; only the signed-in branch is available.
 * Switch to **Analyst**: ask *List the top 10 customers by transaction value in Q3 2026.* -> declined (no customer-level data; no raw table access).
 
@@ -70,7 +70,7 @@ latency and row count; expand one to see the exact Cube query. Filter **Status =
 ## 6. Optional: an external MCP client on the same governed metrics (1 min)
 
 Add the server from the README to Claude Desktop (or any MCP client) with a CMO token (`python scripts/make_token.py cmo`),
-and ask *"What is our NPL ratio for September 2026?"* -> **3.10%**, with the same definition and the same audit trail
+and ask *"What is our NPL ratio for September 2026?"* -> **3.92%**, with the same definition and the same audit trail
 (the call appears in the Trust center).
 
 ---

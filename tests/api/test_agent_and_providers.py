@@ -254,3 +254,17 @@ def test_no_provider_specific_code_outside_the_providers_package():
     # provider *names* in env/config plumbing are allowed; SDK usage is not
     offenders = [o for o in offenders if re.search(r"genai|import anthropic|from anthropic", o)]
     assert not offenders, offenders
+
+
+def test_comparison_tables_chart_the_two_periods_with_the_metric_unit():
+    from app.results import resolve_chart, tables_from
+
+    result = {"metric": "churn_rate", "dimensions": ["segment"], "definition": "x",
+              "rows": [{"segment": "A", "period_a": 0.01, "period_b": 0.03, "change": 0.02, "change_pct": 2.0},
+                       {"segment": "B", "period_a": 0.02, "period_b": 0.02, "change": 0.0, "change_pct": 0.0}],
+              "display_rows": [{"segment": "A"}, {"segment": "B"}]}
+    rec = ToolRecord("c1", "compare_periods", {}, result=result)
+    tables = tables_from([rec])
+    assert tables[0].metric == "churn_rate"
+    chart = resolve_chart(None, tables)
+    assert chart and chart.y == ["period_a", "period_b"] and chart.x == "segment"

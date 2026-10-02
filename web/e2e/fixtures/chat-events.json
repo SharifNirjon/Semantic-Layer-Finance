@@ -30,7 +30,7 @@
    "name": "compare_periods",
    "ok": true,
    "rows": 5,
-   "latency_ms": 1250,
+   "latency_ms": 249,
    "error": null
   },
   {
@@ -129,7 +129,8 @@
         "change": "+0.01 pp",
         "change_pct": "+1.2%"
        }
-      ]
+      ],
+      "metric": "churn_rate"
      }
     ],
     "chart_spec": {
@@ -137,8 +138,7 @@
      "x": "segment",
      "y": [
       "period_a",
-      "period_b",
-      "change"
+      "period_b"
      ],
      "series": null,
      "title": "churn_rate: period comparison",
@@ -262,7 +262,7 @@
         ]
        },
        "error": null,
-       "latency_ms": 1250
+       "latency_ms": 249
       }
      ],
      "executed_as": {
