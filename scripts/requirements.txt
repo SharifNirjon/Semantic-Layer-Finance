@@ -1,4 +1,7 @@
-numpy
-pandas
-tabulate
-psycopg[binary]
+numpy==2.5.3
+pandas==3.0.6
+tabulate==0.10.0
+psycopg[binary]==3.3.6
+httpx==0.28.1
+pyjwt==2.15.1
+pyyaml==6.0.3

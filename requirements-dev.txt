@@ -1,7 +1,9 @@
-# Dev / test environment (host). Service images pin their own requirements.
+# Host dev/test environment (python 3.13). The services pin their own requirements in their folders.
 -r scripts/requirements.txt
-pytest
-pytest-asyncio
-ruff
-mypy
+-r api/requirements.txt
+-r mcp-server/requirements.txt
+pytest==9.1.1
+pytest-asyncio==1.4.0
+ruff==0.16.10
+mypy==2.4.0
 types-PyYAML

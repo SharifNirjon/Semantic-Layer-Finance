@@ -34,7 +34,9 @@ class McpGateway:
 
     def _client(self, token: str | None) -> Client:
         headers = {"Authorization": f"Bearer {token}"} if token else {}
-        return Client(streamable_http_client(self.url, http_client=httpx2.AsyncClient(headers=headers)))
+        # generous timeout: the first query after a data reload may wait for Cube to build a pre-aggregation
+        http = httpx2.AsyncClient(headers=headers, timeout=httpx2.Timeout(180.0, connect=10.0))
+        return Client(streamable_http_client(self.url, http_client=http))
 
     async def discover(self, attempts: int = 30) -> list[ToolSpec]:
         """Load the tool list from the MCP server (waits for it to come up)."""
