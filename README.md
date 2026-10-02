@@ -60,6 +60,10 @@ Tested layout for one Ubuntu/Debian server with 4 GB+ RAM (e.g. a Hostinger KVM 
 2. On the server: `git clone <this repo> && cd Semantic-Layer-Finance && sudo ./deploy/deploy.sh analytics.example.com`
 3. It asks for the Gemini API key and a site login, installs Docker if needed, seeds the warehouse on the first run,
    and starts everything. Re-run it to deploy new commits after `git pull`.
+4. Optional, automatic deploys: every push to `main` redeploys via `.github/workflows/deploy.yml`. Once:
+   `ssh-keygen -t ed25519 -f gh_deploy -N ""`, append `gh_deploy.pub` to the server's `~/.ssh/authorized_keys`, then add
+   repo secrets `VPS_HOST` (server IP) and `VPS_SSH_KEY` (contents of `gh_deploy`). Set `VPS_APP_DIR` if the repo is not in
+   `/root/Semantic-Layer-Finance`. Runs show under the Actions tab; "Run workflow" deploys on demand.
 
 Caddy is the only public service: it serves the UI and the API on one origin (`/api` is proxied to the API), gets the
 TLS certificate automatically, and puts a password in front of the site so strangers cannot spend the LLM quota.
