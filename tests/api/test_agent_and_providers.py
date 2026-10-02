@@ -195,8 +195,8 @@ async def test_backoff_retries_rate_limits_and_gives_up_on_fatal_errors():
 
 
 def test_gemini_adapter_translates_tools_and_history():
-    from app.providers.gemini import GeminiProvider
     from app.providers.base import ToolResult
+    from app.providers.gemini import GeminiProvider
 
     spec = ToolSpec("query_metrics", "desc", {"$defs": {}, "type": "object", "properties": {"limit": {"type": "integer"}}})
     tools = GeminiProvider.to_tools([spec])

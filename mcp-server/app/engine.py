@@ -115,7 +115,7 @@ class Engine:
         key = (caller.role, caller.branch_id, name)
         if key not in self._values:
             dim = cat.dimension(name, caller.role)
-            cube, member = next(iter(dim.members.items()))
+            member = next(iter(dim.members.values()))
             rows = await self.cube.load(caller.token, {"dimensions": [member], "limit": 500})
             self._values[key] = sorted(str(r[member]) for r in rows if r.get(member) is not None)
         return self._values[key]

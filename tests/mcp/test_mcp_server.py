@@ -29,7 +29,7 @@ pytestmark = pytest.mark.integration
 
 
 @pytest.fixture(scope="module", autouse=True)
-def server(cube):  # noqa: ARG001 - ensures Cube is up
+def server(cube):
     env = {**os.environ, "MCP_TRANSPORT": "http", "MCP_PORT": str(PORT), "CUBE_URL": "http://localhost:4000",
            "JWT_SECRET": JWT_SECRET}
     proc = subprocess.Popen([sys.executable, "-m", "app"], cwd=ROOT / "mcp-server", env=env,

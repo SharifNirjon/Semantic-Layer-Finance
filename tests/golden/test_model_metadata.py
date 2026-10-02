@@ -15,7 +15,7 @@ REQUIRED_SPEC_METRICS = {
 
 
 def test_all_spec_metrics_exist():
-    assert REQUIRED_SPEC_METRICS <= {m["name"] for m in METRICS}
+    assert {m["name"] for m in METRICS} >= REQUIRED_SPEC_METRICS
 
 
 @pytest.mark.parametrize("metric", METRICS, ids=lambda m: f"{m['cube']}.{m['name']}")

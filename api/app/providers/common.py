@@ -5,16 +5,15 @@ from __future__ import annotations
 import asyncio
 import random
 from collections.abc import Awaitable, Callable
-from typing import Any, TypeVar
+from typing import Any
 
-T = TypeVar("T")
 MAX_ATTEMPTS = 5
 BASE_DELAY_S = 1.0
 MAX_DELAY_S = 30.0
 
 
-async def with_backoff(call: Callable[[], Awaitable[T]], is_retryable: Callable[[Exception], float | None],
-                       sleep: Callable[[float], Awaitable[None]] = asyncio.sleep) -> T:
+async def with_backoff[T](call: Callable[[], Awaitable[T]], is_retryable: Callable[[Exception], float | None],
+                          sleep: Callable[[float], Awaitable[None]] = asyncio.sleep) -> T:
     """Run `call`, retrying with exponential backoff and jitter on rate limits / transient errors.
 
     `is_retryable` returns None for fatal errors, or a minimum delay in seconds (0 if the provider gave no hint).
@@ -53,7 +52,10 @@ def inline_schema(schema: dict[str, Any]) -> dict[str, Any]:
         }
         if out.get("format") in {"date", "date-time"}:
             out.pop("format")
-            out["description"] = (out.get("description", "") + " (format YYYY-MM-DD)").strip()
+            desc = str(out.get("description", ""))
+            if "YYYY" not in desc:
+                out["description"] = (desc + " (format YYYY-MM-DD)").strip()
         return out
 
-    return walk({k: v for k, v in schema.items() if k != "$defs"})  # type: ignore[no-any-return]
+    resolved: dict[str, Any] = walk({k: v for k, v in schema.items() if k != "$defs"})
+    return resolved

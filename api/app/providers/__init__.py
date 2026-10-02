@@ -9,7 +9,7 @@ from .base import AssistantTurn, LLMProvider, Message, ProviderError, ToolCall, 
 
 def create_provider(name: str | None = None) -> LLMProvider:
     """Select a provider from LLM_PROVIDER (gemini | anthropic) using only environment variables."""
-    name = (name or os.getenv("LLM_PROVIDER", "gemini")).lower()
+    name = (name or os.getenv("LLM_PROVIDER") or "gemini").lower()
     if name == "gemini":
         from .gemini import GeminiProvider
 

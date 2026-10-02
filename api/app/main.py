@@ -166,4 +166,11 @@ async def recon_break(body: ReconBreak, who: CurrentUser) -> dict[str, Any]:
         raise HTTPException(403, "Only the CMO demo user may toggle the reconciliation break")
     await db.set_gl_break(body.delta_pct if body.enabled else None)
     state.cache.clear()
-    return {"enabled": body.enabled, "delta_pct": body.delta_pct if body.enabled else None}
+    expected = "fail" if body.enabled else "pass"
+    effective = False
+    for _ in range(20):  # wait until the semantic layer reflects the change
+        if (await state.dashboards.reconciliation(who))["overall"] == expected:
+            effective = True
+            break
+        await asyncio.sleep(1)
+    return {"enabled": body.enabled, "delta_pct": body.delta_pct if body.enabled else None, "effective": effective}

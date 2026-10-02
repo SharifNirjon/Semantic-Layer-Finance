@@ -87,7 +87,8 @@ class Dashboards:
             ("churn_segment", "Monthly churn rate by segment", self.q(who, ["churn_rate"], first, last, ["segment"], "month")),
             ("channels", "Transactions by channel", self.q(who, ["txn_count"], first, last, ["channel"], "month")),
         ]
-        cmp_res, *trend_res = await asyncio.gather(asyncio.gather(*compare), *(t[2] for t in trends))
+        done = await asyncio.gather(*compare, *(t[2] for t in trends))
+        cmp_res, trend_res = done[:len(KPIS)], done[len(KPIS):]
         kpis = []
         for metric, rec in zip(KPIS, cmp_res, strict=True):
             r = _ok(rec)

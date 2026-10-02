@@ -45,7 +45,8 @@ def test_branch_manager_total_equals_own_branch_not_bank(cube, bm, cmo_token):
 ])
 def test_branch_manager_only_sees_own_branch_in_every_cube(cube, bm, measure):
     cube_name = measure.split(".")[0]
-    rows = cube.rows(bm, q(measure, [f"{cube_name}.branch"], rng=Q3 if cube_name != "campaigns" else ["2024-10-01", "2026-09-30"]))
+    window = Q3 if cube_name != "campaigns" else ["2024-10-01", "2026-09-30"]
+    rows = cube.rows(bm, q(measure, [f"{cube_name}.branch"], rng=window))
     assert rows, "expected data for the branch"
     assert {r[f"{cube_name}.branch"] for r in rows} == {"Narayanganj"}
 

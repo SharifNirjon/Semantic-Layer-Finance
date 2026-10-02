@@ -56,7 +56,7 @@ class GeminiProvider:
         return contents
 
     @staticmethod
-    def to_tools(tools: list[ToolSpec]) -> list[types.Tool]:
+    def to_tools(tools: list[ToolSpec]) -> list[Any]:
         return [types.Tool(function_declarations=[
             types.FunctionDeclaration(name=t.name, description=t.description,
                                       parameters_json_schema=inline_schema(t.input_schema))

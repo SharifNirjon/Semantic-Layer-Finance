@@ -20,8 +20,8 @@ def dsn() -> str:
 
 
 def _run(sql: str, params: tuple[Any, ...] = (), fetch: bool = False) -> list[dict[str, Any]]:
-    with psycopg.connect(dsn(), autocommit=True, row_factory=dict_row) as conn:  # type: ignore[arg-type]
-        cur = conn.execute(sql, params)  # type: ignore[arg-type]
+    with psycopg.connect(dsn(), autocommit=True, row_factory=dict_row) as conn:
+        cur = conn.execute(sql, params)
         return cur.fetchall() if fetch else []
 
 
@@ -39,7 +39,8 @@ async def record_chat(user: str, role: str, question: str, provider: str, tool_c
 
 async def audit_entries(user: str | None, tool: str | None, status: str | None, hours: int | None,
                         limit: int, only_user: str | None) -> list[dict[str, Any]]:
-    clauses, params = [], []
+    clauses: list[str] = []
+    params: list[Any] = []
     for column, value in (("user_name", only_user or user), ("tool", tool), ("status", status)):
         if value:
             clauses.append(f"{column} = %s")

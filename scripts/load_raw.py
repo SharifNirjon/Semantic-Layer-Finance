@@ -28,10 +28,10 @@ def main() -> None:
     with psycopg.connect(dsn(), autocommit=True) as conn:
         conn.execute((SQL_DIR / "raw_schema.sql").read_text())
         for t in TABLES:
-            with conn.cursor() as cur, (RAW_DIR / f"{t}.csv").open("rb") as f:
-                with cur.copy(f"COPY raw.{t} FROM STDIN WITH (FORMAT csv, HEADER true)") as cp:
-                    while chunk := f.read(1 << 20):
-                        cp.write(chunk)
+            with (conn.cursor() as cur, (RAW_DIR / f"{t}.csv").open("rb") as f,
+                  cur.copy(f"COPY raw.{t} FROM STDIN WITH (FORMAT csv, HEADER true)") as cp):
+                while chunk := f.read(1 << 20):
+                    cp.write(chunk)
             n = conn.execute(f"SELECT count(*) FROM raw.{t}").fetchone()
             print(f"  raw.{t:30s} {n[0] if n else 0:>10,d}")
         conn.execute("""

@@ -1,5 +1,5 @@
 [tool.ruff]
-line-length = 120
+line-length = 130
 target-version = "py313"
 extend-exclude = [".venv", "web", "dbt/target"]
 
@@ -17,8 +17,11 @@ exclude = ['^web/', '^.venv/', '^dbt/']
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-pythonpath = ["scripts", "api"]
+pythonpath = ["scripts", "api", "tests/eval", "tests/golden"]
 markers = [
   "integration: needs the docker compose stack (postgres, cube) to be up",
   "llm: needs an LLM provider API key",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/data_quality_report.py" = ["E501"]

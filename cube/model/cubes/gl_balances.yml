@@ -7,6 +7,9 @@ cubes:
     sql: SELECT gl_date, gl_code, balance FROM marts.fct_gl_daily WHERE is_month_end
     data_source: default
     meta: {grain: month}
+    refresh_key:
+      sql: SELECT coalesce(sum(delta_pct), 0) FROM audit.gl_adjustments
+      every: 2 second
 
     dimensions:
       - name: gl_key
