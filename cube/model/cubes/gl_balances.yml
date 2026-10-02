@@ -1,0 +1,51 @@
+cubes:
+  - name: gl_balances
+    title: General ledger balances
+    description: >
+      Month-end general-ledger control totals for deposits and loans. Used only to reconcile marts to the GL.
+      Bank-wide, so it is not available to the branch manager role.
+    sql: SELECT gl_date, gl_code, balance FROM marts.fct_gl_daily WHERE is_month_end
+    data_source: default
+
+    dimensions:
+      - name: gl_key
+        sql: "{CUBE}.gl_date::text || '-' || {CUBE}.gl_code"
+        type: string
+        primary_key: true
+        public: false
+
+      - name: business_date
+        title: Business date (month end)
+        sql: "{CUBE}.gl_date"
+        type: time
+
+    measures:
+      - name: gl_deposits
+        title: GL deposits (period end)
+        description: General-ledger total of customer deposits at period end.
+        type: sum
+        sql: "{CUBE}.balance"
+        filters:
+          - sql: "{CUBE}.gl_code = 'DEPOSITS'"
+        meta:
+          owner: Chief Financial Officer
+          formula: GL control total for customer deposits at the last month end of the period.
+          time_semantics: period_end
+          unit: bdt
+          bank_wide: true
+          source_tables: [marts.fct_gl_daily]
+
+      - name: gl_loans
+        title: GL loans (period end)
+        description: General-ledger total of loans and advances at period end.
+        type: sum
+        sql: "{CUBE}.balance"
+        filters:
+          - sql: "{CUBE}.gl_code = 'LOANS'"
+        meta:
+          owner: Chief Financial Officer
+          formula: GL control total for loans and advances at the last month end of the period.
+          time_semantics: period_end
+          unit: bdt
+          bank_wide: true
+          source_tables: [marts.fct_gl_daily]

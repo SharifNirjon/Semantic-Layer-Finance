@@ -1,0 +1,163 @@
+cubes:
+  - name: loans
+    title: Loans
+    description: >
+      Loan-month grain: outstanding, classification and delinquency. Segment and branch are as of month end
+      (SCD Type 2). Business date is the month end.
+    sql_table: marts.fct_loans
+    data_source: default
+
+    joins:
+      - name: branches
+        sql: "{CUBE}.branch_id = {branches}.branch_id"
+        relationship: many_to_one
+
+    dimensions:
+      - name: loan_month_id
+        sql: "{CUBE}.loan_id::text || '-' || {CUBE}.month_end::text"
+        type: string
+        primary_key: true
+        public: false
+
+      - name: loan_key
+        title: Loan (hashed)
+        description: Salted hash of the loan id. Customer-level; not available to the analyst role.
+        sql: "{CUBE}.loan_key"
+        type: string
+        meta: {customer_level: true}
+
+      - name: business_date
+        title: Business date (month end)
+        sql: "{CUBE}.month_end"
+        type: time
+
+      - name: branch_id
+        sql: "{CUBE}.branch_id"
+        type: number
+        meta: {internal: true}
+
+      - name: branch
+        title: Branch
+        description: Borrower home branch as of month end.
+        sql: "{CUBE}.branch_name"
+        type: string
+
+      - name: region
+        title: Region
+        sql: "{CUBE}.region"
+        type: string
+
+      - name: segment
+        title: Customer segment
+        sql: "{CUBE}.segment"
+        type: string
+
+      - name: product
+        title: Loan product
+        description: Personal Loan, SME Loan, Home Loan or Credit Card.
+        sql: "{CUBE}.product_name"
+        type: string
+
+      - name: sector
+        title: Sector
+        description: Borrower sector (e.g. RMG / Garments, Textile, Agriculture, Trading, Consumer, Housing).
+        sql: "{CUBE}.sector"
+        type: string
+
+      - name: classification
+        title: Loan classification
+        description: Standard, SMA, Substandard, Doubtful or Bad-Loss, derived from days past due (see METRIC_DICTIONARY).
+        sql: "{CUBE}.classification"
+        type: string
+
+      - name: aging_bucket
+        title: Loan aging bucket
+        description: Days-past-due bucket - Current, 1-29, 30-59, 60-89, 90-179, 180+ days.
+        sql: "{CUBE}.aging_bucket"
+        type: string
+
+    measures:
+      - name: loans_outstanding
+        title: Loans outstanding (period end)
+        description: Outstanding principal of the loan book at period end.
+        type: sum
+        sql: "{CUBE}.outstanding"
+        meta:
+          owner: Chief Risk Officer
+          formula: Sum of outstanding principal of all live loans at the last month end of the period.
+          time_semantics: period_end
+          unit: bdt
+          source_tables: [marts.fct_loans]
+          caveats: Reconciled monthly to the general ledger (see Trust center).
+
+      - name: loans_disbursed
+        title: Loans disbursed
+        description: Principal disbursed during the period.
+        type: sum
+        sql: "{CUBE}.disbursed_amount"
+        meta:
+          owner: Chief Risk Officer
+          formula: Principal of loans whose disbursement date falls within the period (loans still on the books at that month end).
+          time_semantics: flow
+          unit: bdt
+          source_tables: [marts.fct_loans]
+
+      - name: npl_balance
+        title: NPL balance (period end)
+        description: Outstanding balance of non-performing loans (Substandard, Doubtful, Bad-Loss).
+        type: sum
+        sql: "{CUBE}.npl_balance"
+        meta:
+          owner: Chief Risk Officer
+          formula: Outstanding on loans classified Substandard, Doubtful or Bad-Loss at period end.
+          time_semantics: period_end
+          unit: bdt
+          source_tables: [marts.fct_loans]
+
+      - name: npl_ratio
+        title: NPL ratio
+        description: Share of the loan book that is non-performing.
+        type: number
+        sql: "1.0 * {npl_balance} / NULLIF({loans_outstanding}, 0)"
+        meta:
+          owner: Chief Risk Officer
+          formula: NPL balance divided by loans outstanding, both at period end.
+          time_semantics: period_end
+          unit: percent
+          source_tables: [marts.fct_loans]
+          caveats: Classification by days past due - Standard <30, SMA 30-89, Substandard 90-179, Doubtful 180-269, Bad-Loss 270+. Loans over 360 days are written off and leave the book.
+
+      - name: provision_amount
+        title: Provisions held (period end)
+        description: Provisions required under the demo provisioning rule.
+        type: sum
+        sql: "{CUBE}.provision_amount"
+        meta:
+          owner: Chief Risk Officer
+          formula: Outstanding x rate by classification - Standard 1%, SMA 5%, Substandard 20%, Doubtful 50%, Bad-Loss 100%.
+          time_semantics: period_end
+          unit: bdt
+          catalog: false
+          source_tables: [marts.fct_loans]
+
+      - name: provision_coverage
+        title: Provision coverage
+        description: Total provisions held as a share of NPL balance.
+        type: number
+        sql: "1.0 * {provision_amount} / NULLIF({npl_balance}, 0)"
+        meta:
+          owner: Chief Risk Officer
+          formula: Total provisions (all classes, demo rule) divided by NPL balance at period end.
+          time_semantics: period_end
+          unit: percent
+          source_tables: [marts.fct_loans]
+          caveats: Simplified demo provisioning rule, not the regulatory schedule.
+
+    pre_aggregations:
+      - name: monthly
+        measures: [loans_outstanding, loans_disbursed, npl_balance, npl_ratio, provision_amount, provision_coverage]
+        dimensions: [branch_id, branch, region, segment, product, sector, classification, aging_bucket]
+        time_dimension: business_date
+        granularity: month
+        refresh_key:
+          every: 10 minute

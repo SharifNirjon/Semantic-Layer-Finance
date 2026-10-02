@@ -1,0 +1,25 @@
+name: governed_banking
+version: "1.0.0"
+config-version: 2
+profile: governed_banking
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: target
+clean-targets: [target, dbt_packages]
+
+vars:
+  # relative tolerance for the marts-vs-GL reconciliation test
+  recon_tolerance: 0.0001
+  customer_hash_salt: "demo-salt-not-a-secret"
+  active_window_days: 90
+
+models:
+  governed_banking:
+    staging:
+      +materialized: view
+      +schema: staging
+    marts:
+      +materialized: table
+      +schema: marts

@@ -1,0 +1,199 @@
+cubes:
+  - name: customers
+    title: Customers
+    description: >
+      Customer-month grain. Segment and branch are as of month end (SCD Type 2).
+      Business date is the month end.
+    sql_table: marts.fct_customer_month
+    data_source: default
+
+    joins:
+      - name: branches
+        sql: "{CUBE}.branch_id = {branches}.branch_id"
+        relationship: many_to_one
+
+    dimensions:
+      - name: customer_month_id
+        sql: "{CUBE}.customer_id::text || '-' || {CUBE}.month_end::text"
+        type: string
+        primary_key: true
+        public: false
+
+      - name: customer_key
+        title: Customer (hashed)
+        description: Salted hash of the customer id. Customer-level; not available to the analyst role.
+        sql: "{CUBE}.customer_key"
+        type: string
+        meta: {customer_level: true}
+
+      - name: business_date
+        title: Business date (month end)
+        description: Month end of the customer-month. Business date convention is posting date; this table is month-grain.
+        sql: "{CUBE}.month_end"
+        type: time
+
+      - name: branch_id
+        sql: "{CUBE}.branch_id"
+        type: number
+        meta: {internal: true}
+
+      - name: branch
+        title: Branch
+        description: Customer home branch as of month end.
+        sql: "{CUBE}.branch_name"
+        type: string
+
+      - name: region
+        title: Region
+        description: Region of the customer home branch as of month end.
+        sql: "{CUBE}.region"
+        type: string
+
+      - name: segment
+        title: Customer segment
+        description: Retail, Young Professionals, Premium, SME or Student, as of month end.
+        sql: "{CUBE}.segment"
+        type: string
+
+      - name: acquisition_channel
+        title: Acquisition channel
+        description: Channel through which the customer was acquired.
+        sql: "{CUBE}.acquisition_channel"
+        type: string
+
+    measures:
+      - name: total_customers
+        title: Customers (period end)
+        description: Customers still with the bank at month end.
+        type: sum
+        sql: "{CUBE}.customers"
+        meta:
+          owner: Head of Retail Banking
+          formula: Customers acquired on or before month end who have not churned by month end.
+          time_semantics: period_end
+          unit: count
+          source_tables: [marts.fct_customer_month]
+          caveats: Point-in-time; a multi-month period returns the last month end.
+
+      - name: active_customers
+        title: Active customers
+        description: Customers with at least one transaction in the 90 days up to period end.
+        type: sum
+        sql: "{CUBE}.active_customers"
+        meta:
+          owner: Head of Retail Banking
+          formula: Customers with a posted transaction in the 90 days ending on the last day of the period (period end).
+          time_semantics: period_end
+          unit: count
+          source_tables: [marts.fct_customer_month, marts.fct_transactions]
+          caveats: Point-in-time; a multi-month period returns the last month end. Transaction dates use posting date.
+
+      - name: new_customers
+        title: New customers
+        description: Customers acquired during the period.
+        type: sum
+        sql: "{CUBE}.new_customers"
+        meta:
+          owner: Head of Retail Banking
+          formula: Customers whose acquisition date falls within the period.
+          time_semantics: flow
+          unit: count
+          source_tables: [marts.fct_customer_month]
+
+      - name: churned_customers
+        title: Churned customers
+        description: Customers who left the bank during the period.
+        type: sum
+        sql: "{CUBE}.churned_customers"
+        meta:
+          owner: Head of Retail Banking
+          formula: Customers whose churn date falls within the period.
+          time_semantics: flow
+          unit: count
+          source_tables: [marts.fct_customer_month]
+
+      - name: opening_customers
+        title: Opening customers (customer-months at risk)
+        description: Customers at the start of each month, summed over the months in the period. Denominator of churn rate.
+        type: sum
+        sql: "{CUBE}.opening_customers"
+        meta:
+          owner: Head of Retail Banking
+          formula: For each month, customers acquired before the month started and not yet churned; summed across months.
+          time_semantics: flow
+          unit: count
+          catalog: false
+          source_tables: [marts.fct_customer_month]
+
+      - name: products_held
+        title: Products held
+        description: Distinct product types held, summed over customers at month end.
+        type: sum
+        sql: "{CUBE}.products_held"
+        meta:
+          owner: Head of Retail Banking
+          formula: Sum over customers of the number of distinct product types with an open account at month end.
+          time_semantics: period_end
+          unit: count
+          catalog: false
+          source_tables: [marts.fct_customer_month, marts.dim_account]
+
+      - name: multi_product_customers
+        title: Multi-product customers
+        description: Customers holding two or more distinct product types at month end.
+        type: sum
+        sql: "{CUBE}.multi_product_customers"
+        meta:
+          owner: Head of Retail Banking
+          formula: Customers at month end holding at least two distinct product types.
+          time_semantics: period_end
+          unit: count
+          catalog: false
+          source_tables: [marts.fct_customer_month, marts.dim_account]
+
+      - name: churn_rate
+        title: Churn rate (monthly)
+        description: Share of opening customers who churned. Monthly rate; for longer periods it is the average monthly rate.
+        type: number
+        sql: "1.0 * {churned_customers} / NULLIF({opening_customers}, 0)"
+        meta:
+          owner: Head of Retail Banking
+          formula: Customers churned in the period divided by the sum of monthly opening customers. For one month this equals churned divided by customers at the start of that month; for a quarter it is the average monthly churn rate.
+          time_semantics: flow
+          unit: percent
+          source_tables: [marts.fct_customer_month]
+          caveats: Always a monthly-equivalent rate, so months, quarters and years are directly comparable.
+
+      - name: products_per_customer
+        title: Products per customer
+        description: Average number of distinct product types held per customer.
+        type: number
+        sql: "1.0 * {products_held} / NULLIF({total_customers}, 0)"
+        meta:
+          owner: Head of Retail Banking
+          formula: Products held divided by customers at period end.
+          time_semantics: period_end
+          unit: ratio
+          source_tables: [marts.fct_customer_month, marts.dim_account]
+          caveats: Counts distinct product types (savings, FD, card, ...), not accounts.
+
+      - name: cross_sell_rate
+        title: Cross-sell rate
+        description: Share of customers holding two or more product types.
+        type: number
+        sql: "1.0 * {multi_product_customers} / NULLIF({total_customers}, 0)"
+        meta:
+          owner: Head of Retail Banking
+          formula: Customers with at least two distinct product types divided by customers at period end.
+          time_semantics: period_end
+          unit: percent
+          source_tables: [marts.fct_customer_month, marts.dim_account]
+
+    pre_aggregations:
+      - name: monthly
+        measures: [total_customers, active_customers, new_customers, churned_customers, opening_customers, products_held, multi_product_customers, churn_rate, products_per_customer, cross_sell_rate]
+        dimensions: [branch_id, branch, region, segment, acquisition_channel]
+        time_dimension: business_date
+        granularity: month
+        refresh_key:
+          every: 10 minute

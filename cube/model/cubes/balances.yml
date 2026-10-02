@@ -1,0 +1,187 @@
+cubes:
+  - name: balances
+    title: Balances and interest
+    description: >
+      Account-month grain: balances and interest for deposit and loan accounts. Segment and branch are as of
+      month end (SCD Type 2). Business date is the month end.
+    sql_table: marts.fct_account_snapshot
+    data_source: default
+
+    joins:
+      - name: branches
+        sql: "{CUBE}.branch_id = {branches}.branch_id"
+        relationship: many_to_one
+
+    dimensions:
+      - name: account_month_id
+        sql: "{CUBE}.account_id::text || '-' || {CUBE}.month_end::text"
+        type: string
+        primary_key: true
+        public: false
+
+      - name: account_key
+        title: Account (hashed)
+        description: Salted hash of the account id. Customer-level; not available to the analyst role.
+        sql: "{CUBE}.account_key"
+        type: string
+        meta: {customer_level: true}
+
+      - name: business_date
+        title: Business date (month end)
+        sql: "{CUBE}.month_end"
+        type: time
+
+      - name: branch_id
+        sql: "{CUBE}.branch_id"
+        type: number
+        meta: {internal: true}
+
+      - name: branch
+        title: Branch
+        description: Customer home branch as of month end.
+        sql: "{CUBE}.branch_name"
+        type: string
+
+      - name: region
+        title: Region
+        sql: "{CUBE}.region"
+        type: string
+
+      - name: segment
+        title: Customer segment
+        sql: "{CUBE}.segment"
+        type: string
+
+      - name: product
+        title: Product
+        description: Savings, Current, Fixed Deposit, DPS (deposits) and the loan products.
+        sql: "{CUBE}.product_name"
+        type: string
+
+      - name: product_category
+        title: Product category
+        description: Deposit or Loan.
+        sql: "{CUBE}.category"
+        type: string
+
+    measures:
+      - name: total_deposits
+        title: Total deposits (period end)
+        description: Closing deposit balances (savings, current, fixed deposit, DPS) at period end.
+        type: sum
+        sql: "{CUBE}.deposit_balance"
+        meta:
+          owner: Chief Financial Officer
+          formula: Sum of closing balances of all deposit accounts at the last month end of the period.
+          time_semantics: period_end
+          unit: bdt
+          source_tables: [marts.fct_account_snapshot]
+          caveats: Reconciled monthly to the general ledger (see Trust center).
+
+      - name: avg_deposits
+        title: Average deposits
+        description: Average daily deposit balance over the period.
+        type: sum
+        sql: "{CUBE}.avg_deposit_balance"
+        meta:
+          owner: Chief Financial Officer
+          formula: Sum of average daily balances of deposit accounts in each month; for a longer period, the mean of the monthly figures.
+          time_semantics: average
+          unit: bdt
+          source_tables: [marts.fct_account_snapshot]
+
+      - name: casa_balance
+        title: CASA balance (period end)
+        description: Current and savings account balances at period end.
+        type: sum
+        sql: "{CUBE}.casa_balance"
+        meta:
+          owner: Chief Financial Officer
+          formula: Sum of closing balances of Current and Savings accounts at the last month end of the period.
+          time_semantics: period_end
+          unit: bdt
+          source_tables: [marts.fct_account_snapshot]
+
+      - name: casa_ratio
+        title: CASA ratio
+        description: Share of deposits held in current and savings accounts (low-cost funding).
+        type: number
+        sql: "1.0 * {casa_balance} / NULLIF({total_deposits}, 0)"
+        meta:
+          owner: Chief Financial Officer
+          formula: CASA balance divided by total deposits, both at period end.
+          time_semantics: period_end
+          unit: percent
+          source_tables: [marts.fct_account_snapshot]
+          caveats: A falling CASA ratio means funding is shifting to costlier term deposits.
+
+      - name: interest_income
+        title: Interest income
+        description: Interest earned on loans (recognised only on performing loans).
+        type: sum
+        sql: "{CUBE}.interest_income"
+        meta:
+          owner: Chief Financial Officer
+          formula: Interest accrued on loan accounts in the period; interest on loans 90+ days past due is suspended.
+          time_semantics: flow
+          unit: bdt
+          source_tables: [marts.fct_account_snapshot]
+
+      - name: interest_expense
+        title: Interest expense
+        description: Interest paid on deposits.
+        type: sum
+        sql: "{CUBE}.interest_expense"
+        meta:
+          owner: Chief Financial Officer
+          formula: Interest accrued on deposit accounts in the period.
+          time_semantics: flow
+          unit: bdt
+          source_tables: [marts.fct_account_snapshot]
+
+      - name: net_interest_income
+        title: Net interest income (NII)
+        description: Interest income on loans less interest expense on deposits.
+        type: number
+        sql: "{interest_income} - {interest_expense}"
+        meta:
+          owner: Chief Financial Officer
+          formula: Interest income minus interest expense over the period.
+          time_semantics: flow
+          unit: bdt
+          source_tables: [marts.fct_account_snapshot]
+
+      - name: earning_assets_monthly_sum
+        title: Average earning assets (sum of monthly averages)
+        description: Average daily loan balance of each month, summed over the months in the period. Denominator of NIM.
+        type: sum
+        sql: "{CUBE}.avg_loan_balance"
+        meta:
+          owner: Chief Financial Officer
+          formula: Sum over months of the average daily loan balance.
+          time_semantics: flow
+          unit: bdt
+          catalog: false
+          source_tables: [marts.fct_account_snapshot]
+
+      - name: nim
+        title: Net interest margin (NIM)
+        description: Annualised net interest income as a share of average earning assets.
+        type: number
+        sql: "12.0 * {net_interest_income} / NULLIF({earning_assets_monthly_sum}, 0)"
+        meta:
+          owner: Chief Financial Officer
+          formula: Net interest income divided by average earning assets (the loan book), annualised (x12 over monthly averages).
+          time_semantics: flow
+          unit: percent
+          source_tables: [marts.fct_account_snapshot]
+          caveats: Earning assets are loans only; investments and placements are not modelled.
+
+    pre_aggregations:
+      - name: monthly
+        measures: [total_deposits, avg_deposits, casa_balance, casa_ratio, interest_income, interest_expense, net_interest_income, earning_assets_monthly_sum, nim]
+        dimensions: [branch_id, branch, region, segment, product, product_category]
+        time_dimension: business_date
+        granularity: month
+        refresh_key:
+          every: 10 minute

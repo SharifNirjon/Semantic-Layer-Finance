@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/raw/
+node_modules/
+.next/
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+cube/.cubestore/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+web/test-results/
+web/playwright-report/
+*.log

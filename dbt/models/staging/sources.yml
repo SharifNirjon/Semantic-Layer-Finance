@@ -1,0 +1,19 @@
+version: 2
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: branches
+      - name: products
+      - name: customers
+      - name: customer_attribute_history
+      - name: accounts
+      - name: account_monthly_snapshots
+      - name: transactions
+      - name: loans
+      - name: loan_monthly_snapshots
+      - name: campaigns
+      - name: campaign_responses
+      - name: gl_daily_balances
+      - name: gl_adjustments
+        schema: audit

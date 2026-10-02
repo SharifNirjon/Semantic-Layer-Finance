@@ -1,0 +1,7 @@
+# Dev / test environment (host). Service images pin their own requirements.
+-r scripts/requirements.txt
+pytest
+pytest-asyncio
+ruff
+mypy
+types-PyYAML

@@ -1,0 +1,69 @@
+cubes:
+  - name: accounts
+    title: Accounts
+    description: Account master. Business date is the account open date.
+    sql_table: marts.dim_account
+    data_source: default
+
+    joins:
+      - name: branches
+        sql: "{CUBE}.branch_id = {branches}.branch_id"
+        relationship: many_to_one
+
+    dimensions:
+      - name: account_id
+        sql: "{CUBE}.account_id"
+        type: number
+        primary_key: true
+        public: false
+
+      - name: account_key
+        title: Account (hashed)
+        description: Salted hash of the account id. Customer-level; not available to the analyst role.
+        sql: "{CUBE}.account_key"
+        type: string
+        meta: {customer_level: true}
+
+      - name: business_date
+        title: Business date (open date)
+        sql: "{CUBE}.open_date"
+        type: time
+
+      - name: branch_id
+        sql: "{CUBE}.branch_id"
+        type: number
+        meta: {internal: true}
+
+      - name: branch
+        title: Branch
+        description: Branch where the account was opened.
+        sql: "{CUBE}.branch_name"
+        type: string
+
+      - name: region
+        title: Region
+        sql: "{CUBE}.region"
+        type: string
+
+      - name: product
+        title: Product
+        description: Savings, Current, Fixed Deposit, DPS, Personal Loan, SME Loan, Home Loan or Credit Card.
+        sql: "{CUBE}.product_name"
+        type: string
+
+      - name: status
+        title: Account status
+        sql: "{CUBE}.status"
+        type: string
+
+    measures:
+      - name: accounts_opened
+        title: Accounts opened
+        description: Accounts opened during the period.
+        type: count
+        meta:
+          owner: Head of Retail Banking
+          formula: Accounts whose open date falls within the period.
+          time_semantics: flow
+          unit: count
+          source_tables: [marts.dim_account]

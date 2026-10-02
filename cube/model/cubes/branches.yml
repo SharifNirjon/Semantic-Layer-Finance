@@ -1,0 +1,38 @@
+cubes:
+  - name: branches
+    title: Branches
+    description: Branch master data. Used for joins and for listing branches; business date is not applicable.
+    sql_table: marts.dim_branch
+    data_source: default
+
+    dimensions:
+      - name: branch_id
+        sql: "{CUBE}.branch_id"
+        type: number
+        primary_key: true
+        meta: {internal: true}
+
+      - name: branch
+        title: Branch
+        description: Branch name.
+        sql: "{CUBE}.branch_name"
+        type: string
+
+      - name: region
+        title: Region
+        description: Administrative region of the branch (Dhaka, Chattogram, Sylhet, Rajshahi, Khulna, Barishal, Rangpur, Mymensingh).
+        sql: "{CUBE}.region"
+        type: string
+
+    measures:
+      - name: branch_count
+        title: Number of branches
+        description: Count of branches in the network.
+        type: count
+        meta:
+          owner: Head of Retail Banking
+          formula: Number of branches in the master data.
+          time_semantics: flow
+          unit: count
+          catalog: false
+          source_tables: [marts.dim_branch]

@@ -1,0 +1,169 @@
+cubes:
+  - name: campaigns
+    title: Campaigns
+    description: >
+      One row per targeted customer per campaign. Business date is the month the campaign started.
+      Cost is allocated evenly across targeted customers, so it sums to the campaign cost under any slice.
+    sql_table: marts.fct_campaign_response
+    data_source: default
+
+    joins:
+      - name: branches
+        sql: "{CUBE}.branch_id = {branches}.branch_id"
+        relationship: many_to_one
+
+    dimensions:
+      - name: response_id
+        sql: "{CUBE}.response_id"
+        type: number
+        primary_key: true
+        public: false
+
+      - name: customer_key
+        title: Customer (hashed)
+        description: Salted hash of the customer id. Customer-level; not available to the analyst role.
+        sql: "{CUBE}.customer_key"
+        type: string
+        meta: {customer_level: true}
+
+      - name: business_date
+        title: Business date (campaign start month end)
+        sql: "{CUBE}.month_end"
+        type: time
+
+      - name: branch_id
+        sql: "{CUBE}.branch_id"
+        type: number
+        meta: {internal: true}
+
+      - name: branch
+        title: Branch
+        description: Targeted customer home branch at campaign start.
+        sql: "{CUBE}.branch_name"
+        type: string
+
+      - name: region
+        title: Region
+        sql: "{CUBE}.region"
+        type: string
+
+      - name: segment
+        title: Customer segment
+        description: Segment of the targeted customer at campaign start.
+        sql: "{CUBE}.segment"
+        type: string
+
+      - name: campaign
+        title: Campaign
+        description: Campaign name.
+        sql: "{CUBE}.campaign_name"
+        type: string
+
+      - name: campaign_channel
+        title: Campaign channel
+        description: SMS, Email, Digital, Social, Branch or Call Center.
+        sql: "{CUBE}.campaign_channel"
+        type: string
+
+      - name: target_segment
+        title: Campaign target segment
+        sql: "{CUBE}.target_segment"
+        type: string
+
+    measures:
+      - name: campaign_cost
+        title: Campaign cost
+        description: Marketing spend of the campaigns in scope.
+        type: sum
+        sql: "{CUBE}.allocated_cost"
+        meta:
+          owner: CMO
+          formula: Campaign cost (BDT), allocated evenly across targeted customers.
+          time_semantics: flow
+          unit: bdt
+          source_tables: [marts.fct_campaign_response]
+
+      - name: customers_targeted
+        title: Customers targeted
+        description: Customers contacted by the campaigns.
+        type: count
+        meta:
+          owner: CMO
+          formula: Number of customers targeted.
+          time_semantics: flow
+          unit: count
+          catalog: false
+          source_tables: [marts.fct_campaign_response]
+
+      - name: campaign_responses
+        title: Responses
+        description: Targeted customers who responded.
+        type: sum
+        sql: "{CUBE}.responded"
+        meta:
+          owner: CMO
+          formula: Number of targeted customers who responded.
+          time_semantics: flow
+          unit: count
+          catalog: false
+          source_tables: [marts.fct_campaign_response]
+
+      - name: campaign_conversions
+        title: Conversions
+        description: Responders who opened a product because of the campaign (attributed customers).
+        type: sum
+        sql: "{CUBE}.converted"
+        meta:
+          owner: CMO
+          formula: Number of responders whose response led to a new product (the customers attributed to the campaign).
+          time_semantics: flow
+          unit: count
+          catalog: false
+          source_tables: [marts.fct_campaign_response]
+
+      - name: campaign_response_rate
+        title: Campaign response rate
+        description: Share of targeted customers who responded.
+        type: number
+        sql: "1.0 * {campaign_responses} / NULLIF({customers_targeted}, 0)"
+        meta:
+          owner: CMO
+          formula: Responders divided by customers targeted.
+          time_semantics: flow
+          unit: percent
+          source_tables: [marts.fct_campaign_response]
+
+      - name: campaign_conversion_rate
+        title: Campaign conversion rate
+        description: Share of responders who converted to a product.
+        type: number
+        sql: "1.0 * {campaign_conversions} / NULLIF({campaign_responses}, 0)"
+        meta:
+          owner: CMO
+          formula: Conversions divided by responders.
+          time_semantics: flow
+          unit: percent
+          source_tables: [marts.fct_campaign_response]
+          caveats: Conversion is measured against responders, not against everyone targeted.
+
+      - name: cac
+        title: Customer acquisition cost (CAC)
+        description: Campaign cost per customer attributed to the campaign.
+        type: number
+        sql: "{campaign_cost} / NULLIF({campaign_conversions}, 0)"
+        meta:
+          owner: CMO
+          formula: Campaign cost divided by the customers attributed (converted) to the campaign.
+          time_semantics: flow
+          unit: bdt
+          source_tables: [marts.fct_campaign_response]
+          caveats: Attributed customers are responders who opened a product via the campaign.
+
+    pre_aggregations:
+      - name: monthly
+        measures: [campaign_cost, customers_targeted, campaign_responses, campaign_conversions, campaign_response_rate, campaign_conversion_rate, cac]
+        dimensions: [branch_id, branch, region, segment, campaign, campaign_channel, target_segment]
+        time_dimension: business_date
+        granularity: month
+        refresh_key:
+          every: 10 minute

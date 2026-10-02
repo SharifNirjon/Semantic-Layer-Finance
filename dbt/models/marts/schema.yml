@@ -1,0 +1,160 @@
+version: 2
+
+models:
+  - name: dim_branch
+    columns:
+      - name: branch_id
+        data_tests: [unique, not_null]
+      - name: region
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [Dhaka, Chattogram, Sylhet, Rajshahi, Khulna, Barishal, Rangpur, Mymensingh]
+
+  - name: dim_product
+    columns:
+      - name: product_id
+        data_tests: [unique, not_null]
+      - name: category
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [Deposit, Loan]
+
+  - name: dim_date
+    columns:
+      - name: date_day
+        data_tests: [unique, not_null]
+
+  - name: dim_customer
+    description: SCD Type 2 on segment and home branch. valid_to is exclusive; open rows end 9999-12-31.
+    columns:
+      - name: customer_sk
+        data_tests: [unique, not_null]
+      - name: customer_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_customers')
+                field: customer_id
+      - name: segment
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [Retail, Young Professionals, Premium, SME, Student]
+      - name: branch_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_branch')
+                field: branch_id
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [customer_id, valid_from]
+
+  - name: dim_account
+    columns:
+      - name: account_id
+        data_tests: [unique, not_null]
+      - name: customer_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_customers')
+                field: customer_id
+      - name: product_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: product_id
+
+  - name: fct_account_snapshot
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [account_id, month_end]
+    columns:
+      - name: closing_balance
+        data_tests: [not_null]
+      - name: branch_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_branch')
+                field: branch_id
+      - name: segment
+        data_tests: [not_null]
+
+  - name: fct_loans
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [loan_id, month_end]
+    columns:
+      - name: classification
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [Standard, SMA, Substandard, Doubtful, Bad-Loss]
+      - name: branch_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_branch')
+                field: branch_id
+
+  - name: fct_transactions
+    columns:
+      - name: txn_id
+        data_tests: [unique, not_null]
+      - name: channel
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [ATM, Mobile, Card, Branch, Internet]
+      - name: direction
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [Debit, Credit]
+      - name: amount
+        data_tests: [not_null]
+
+  - name: fct_customer_month
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [customer_id, month_end]
+    columns:
+      - name: branch_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_branch')
+                field: branch_id
+
+  - name: fct_campaign_response
+    columns:
+      - name: response_id
+        data_tests: [unique, not_null]
+      - name: campaign_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_campaigns')
+                field: campaign_id
+
+  - name: fct_gl_daily
+    columns:
+      - name: gl_code
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [DEPOSITS, LOANS]

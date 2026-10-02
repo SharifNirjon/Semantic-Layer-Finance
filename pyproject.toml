@@ -1,0 +1,24 @@
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+extend-exclude = [".venv", "web", "dbt/target"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["RUF012"]
+
+[tool.mypy]
+python_version = "3.13"
+ignore_missing_imports = true
+warn_unused_ignores = true
+explicit_package_bases = true
+exclude = ['^web/', '^.venv/', '^dbt/']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+pythonpath = ["scripts", "mcp-server", "api", "."]
+markers = [
+  "integration: needs the docker compose stack (postgres, cube) to be up",
+  "llm: needs an LLM provider API key",
+]

@@ -1,0 +1,127 @@
+name: governed-banking
+
+x-env: &warehouse-env
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: ${POSTGRES_DB:-warehouse}
+  POSTGRES_USER: ${POSTGRES_USER:-bank}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bank_demo_pw}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-warehouse}
+      POSTGRES_USER: ${POSTGRES_USER:-bank}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bank_demo_pw}
+    command: ["postgres", "-c", "shared_buffers=512MB", "-c", "work_mem=64MB", "-c", "max_wal_size=4GB",
+              "-c", "synchronous_commit=off", "-c", "max_connections=200"]
+    ports: ["${POSTGRES_PORT:-5432}:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  seed:
+    profiles: ["tools"]
+    build: {context: ., dockerfile: scripts/Dockerfile, args: {PIP_INDEX_URL: "${PIP_INDEX_URL:-https://pypi.org/simple}"}}
+    environment:
+      <<: *warehouse-env
+      REFERENCE_DATE: ${REFERENCE_DATE:-2026-09-30}
+    volumes:
+      - ./data:/app/data
+      - ./docs:/app/docs
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  dbt:
+    profiles: ["tools"]
+    build: {context: ., dockerfile: dbt/Dockerfile, args: {PIP_INDEX_URL: "${PIP_INDEX_URL:-https://pypi.org/simple}"}}
+    environment: *warehouse-env
+    volumes:
+      - ./dbt:/dbt
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  cube:
+    image: cubejs/cube:v1.7.49
+    environment:
+      CUBEJS_DB_TYPE: postgres
+      CUBEJS_DB_HOST: postgres
+      CUBEJS_DB_PORT: "5432"
+      CUBEJS_DB_NAME: ${POSTGRES_DB:-warehouse}
+      CUBEJS_DB_USER: ${POSTGRES_USER:-bank}
+      CUBEJS_DB_PASS: ${POSTGRES_PASSWORD:-bank_demo_pw}
+      CUBEJS_API_SECRET: ${JWT_SECRET}
+      CUBEJS_DEV_MODE: "false"
+      CUBEJS_SCHEDULED_REFRESH_DEFAULT: "true"
+      CUBEJS_LOG_LEVEL: warn
+    ports: ["${CUBE_PORT:-4000}:4000"]
+    volumes:
+      - ./cube:/cube/conf
+    depends_on:
+      postgres: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4000/readyz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  mcp-server:
+    build: {context: ., dockerfile: mcp-server/Dockerfile, args: {PIP_INDEX_URL: "${PIP_INDEX_URL:-https://pypi.org/simple}"}}
+    environment:
+      <<: *warehouse-env
+      CUBE_URL: http://cube:4000
+      CUBEJS_API_SECRET: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      MCP_TRANSPORT: http
+      MCP_PORT: "8765"
+    ports: ["${MCP_PORT:-8765}:8765"]
+    depends_on:
+      cube: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8765/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: {context: ., dockerfile: api/Dockerfile, args: {PIP_INDEX_URL: "${PIP_INDEX_URL:-https://pypi.org/simple}"}}
+    environment:
+      <<: *warehouse-env
+      MCP_URL: http://mcp-server:8765/mcp
+      JWT_SECRET: ${JWT_SECRET}
+      LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
+      CORS_ORIGINS: http://localhost:${WEB_PORT:-3000}
+    ports: ["${API_PORT:-8000}:8000"]
+    depends_on:
+      mcp-server: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-8000}
+    ports: ["${WEB_PORT:-3000}:3000"]
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  pgdata:

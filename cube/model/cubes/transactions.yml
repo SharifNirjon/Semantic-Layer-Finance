@@ -1,0 +1,138 @@
+cubes:
+  - name: transactions
+    title: Transactions
+    description: >
+      One row per posted transaction. Business date = posting date (value date is retained in the warehouse
+      but never used for metrics). Segment and branch are as of the posting date (SCD Type 2).
+    sql_table: marts.fct_transactions
+    data_source: default
+
+    joins:
+      - name: branches
+        sql: "{CUBE}.branch_id = {branches}.branch_id"
+        relationship: many_to_one
+
+    dimensions:
+      - name: txn_id
+        sql: "{CUBE}.txn_id"
+        type: number
+        primary_key: true
+        public: false
+
+      - name: customer_key
+        title: Customer (hashed)
+        description: Salted hash of the customer id. Customer-level; not available to the analyst role.
+        sql: "{CUBE}.customer_key"
+        type: string
+        meta: {customer_level: true}
+
+      - name: business_date
+        title: Business date (posting date)
+        description: Posting date of the transaction.
+        sql: "{CUBE}.posting_date"
+        type: time
+
+      - name: branch_id
+        sql: "{CUBE}.branch_id"
+        type: number
+        meta: {internal: true}
+
+      - name: branch
+        title: Branch
+        description: Customer home branch as of the posting date.
+        sql: "{CUBE}.branch_name"
+        type: string
+
+      - name: region
+        title: Region
+        sql: "{CUBE}.region"
+        type: string
+
+      - name: segment
+        title: Customer segment
+        sql: "{CUBE}.segment"
+        type: string
+
+      - name: channel
+        title: Channel
+        description: ATM, Mobile, Card, Branch or Internet.
+        sql: "{CUBE}.channel"
+        type: string
+
+      - name: direction
+        title: Direction
+        description: Debit or Credit.
+        sql: "{CUBE}.direction"
+        type: string
+
+      - name: product
+        title: Account product
+        description: Product of the account the transaction posted to.
+        sql: "{CUBE}.product_name"
+        type: string
+
+    measures:
+      - name: txn_count
+        title: Transaction count
+        description: Number of posted transactions.
+        type: count
+        meta:
+          owner: Head of Digital Banking
+          formula: Count of transactions with a posting date in the period.
+          time_semantics: flow
+          unit: count
+          source_tables: [marts.fct_transactions]
+
+      - name: txn_value
+        title: Transaction value
+        description: Total value of posted transactions (debits and credits).
+        type: sum
+        sql: "{CUBE}.amount"
+        meta:
+          owner: Head of Digital Banking
+          formula: Sum of transaction amounts (BDT) with a posting date in the period; debits and credits both counted.
+          time_semantics: flow
+          unit: bdt
+          source_tables: [marts.fct_transactions]
+
+      - name: digital_txn_count
+        title: Digital transaction count
+        description: Mobile plus internet transactions.
+        type: sum
+        sql: "{CUBE}.is_digital"
+        meta:
+          owner: Head of Digital Banking
+          formula: Count of mobile and internet transactions in the period.
+          time_semantics: flow
+          unit: count
+          catalog: false
+          source_tables: [marts.fct_transactions]
+
+      - name: digital_share
+        title: Digital share of transactions
+        description: Share of transactions made through mobile or internet banking.
+        type: number
+        sql: "1.0 * {digital_txn_count} / NULLIF({txn_count}, 0)"
+        meta:
+          owner: Head of Digital Banking
+          formula: (Mobile + internet transactions) divided by all transactions, by count.
+          time_semantics: flow
+          unit: percent
+          source_tables: [marts.fct_transactions]
+
+    pre_aggregations:
+      - name: monthly
+        measures: [txn_count, txn_value, digital_txn_count, digital_share]
+        dimensions: [branch_id, branch, region, segment, channel, direction, product]
+        time_dimension: business_date
+        granularity: month
+        refresh_key:
+          every: 10 minute
+
+      - name: daily
+        measures: [txn_count, txn_value, digital_txn_count, digital_share]
+        dimensions: [region, segment, channel, direction]
+        time_dimension: business_date
+        granularity: day
+        refresh_key:
+          every: 10 minute
